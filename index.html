@@ -1,0 +1,553 @@
+<!doctype html>
+<html lang="th">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>ห้องเรียนของเรา</title>
+<meta name="theme-color" content="#B60D18">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="ห้องเรียน">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="icons/icon-192.png">
+<link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Anuphan:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --pri:#E4111F; --priD:#B60D18;
+    --c-bg:#F4F6FA; --c-surface:#FFFFFF; --c-border:#E4E5E7;
+    --c-text:#0E0F12; --c-text-muted:#6E7378; --c-text-subtle:#9AA0A8; --c-on-brand:#FFFFFF;
+  }
+  *{ box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
+  [hidden]{ display:none !important; }
+  html,body{ margin:0; min-height:100%; }
+  body{ font-family:'Anuphan',system-ui,sans-serif; color:var(--c-text); background:var(--c-bg); -webkit-text-size-adjust:100%; }
+  input,select,textarea,button{ font-family:inherit; }
+  @keyframes fadeUp{ from{ transform:translateY(8px); opacity:0; } to{ transform:none; opacity:1; } }
+
+  .shell{ max-width:460px; margin:0 auto; min-height:100vh; min-height:100dvh; display:flex; flex-direction:column; }
+  .statusbar{ flex:none; display:flex; align-items:center; justify-content:space-between; padding:0 18px;
+    height:52px; padding-top:env(safe-area-inset-top); }
+  .brand{ display:flex; align-items:center; gap:9px; }
+  .brand .dot{ width:32px; height:32px; border-radius:10px; background:var(--pri); color:#fff; font-weight:800;
+    display:flex; align-items:center; justify-content:center; font-size:15px; box-shadow:0 3px 10px rgba(228,17,31,.28); }
+  .brand .nm{ font-size:14px; font-weight:700; }
+  .brand .role{ font-size:10.5px; color:var(--c-text-muted); }
+  .iconbtn{ width:34px; height:34px; border-radius:10px; border:1px solid var(--c-border); background:var(--c-surface);
+    color:var(--c-text); font-size:15px; cursor:pointer; display:flex; align-items:center; justify-content:center; }
+  .tabhead{ flex:none; padding:2px 18px 12px; }
+  .tabhead h1{ margin:2px 0 0; font-size:21px; font-weight:700; letter-spacing:-.01em; }
+  .kicker{ font-size:11px; font-weight:700; letter-spacing:.08em; color:var(--pri); text-transform:uppercase; }
+  .view{ flex:1; overflow-y:auto; padding:2px 16px 24px; -webkit-overflow-scrolling:touch; }
+  .stack{ display:flex; flex-direction:column; gap:12px; }
+  .navwrap{ flex:none; padding:10px 14px calc(14px + env(safe-area-inset-bottom)); position:sticky; bottom:0;
+    background:linear-gradient(180deg,rgba(244,246,250,0) 0%,var(--c-bg) 42%); }
+  .navbar{ background:var(--pri); border-radius:999px; display:flex; padding:5px; gap:3px; box-shadow:0 10px 26px rgba(14,15,18,.20); }
+  .navbtn{ flex:1; text-align:center; white-space:nowrap; cursor:pointer; border-radius:999px; padding:10px 4px;
+    font-size:11.5px; font-weight:600; color:rgba(255,255,255,.80); border:none; background:transparent; }
+  .navbtn.on{ background:#fff; color:var(--pri); font-weight:700; box-shadow:0 2px 6px rgba(14,15,18,.18); }
+
+  .card{ background:var(--c-surface); border:1px solid var(--c-border); border-radius:16px; padding:15px; }
+  .lbl{ font-size:12px; font-weight:600; letter-spacing:.05em; color:var(--c-text-muted); text-transform:uppercase; }
+  .muted{ font-size:12px; color:var(--c-text-muted); }
+  .btn{ padding:11px 16px; border-radius:11px; border:none; background:var(--pri); color:#fff; font-size:14px; font-weight:700; cursor:pointer; }
+  .btn.ghost{ border:1px solid var(--c-border); background:var(--c-surface); color:var(--c-text); font-weight:600; }
+  .btn.sm{ padding:7px 12px; font-size:12.5px; border-radius:9px; font-weight:600; }
+  .btn.danger{ background:#fff; color:var(--pri); border:1px solid #F5C6C8; }
+  .btn:disabled{ opacity:.45; pointer-events:none; }
+  .in{ border:1px solid var(--c-border); border-radius:10px; padding:11px 12px; font-size:15px; background:var(--c-surface); color:var(--c-text); width:100%; }
+  textarea.in{ min-height:80px; resize:vertical; }
+  .chip{ font-size:11px; font-weight:700; padding:3px 10px; border-radius:999px; white-space:nowrap; }
+  .x{ width:30px; height:30px; flex:none; border-radius:9px; border:1px solid var(--c-border); background:var(--c-surface); color:var(--c-text-muted); cursor:pointer; font-size:13px; }
+  .row{ display:flex; align-items:center; gap:8px; }
+  .fab{ position:fixed; left:0; right:0; bottom:0; display:flex; justify-content:center; pointer-events:none; }
+
+  .gate{ min-height:100vh; min-height:100dvh; display:flex; flex-direction:column; justify-content:center;
+    max-width:420px; margin:0 auto; padding:28px 24px calc(28px + env(safe-area-inset-bottom));
+    background:linear-gradient(180deg,#FFFFFF 0%,#EAEFF6 100%); animation:fadeUp .3s ease-out; }
+  .gate .logo{ width:76px; height:76px; border-radius:22px; background:var(--pri); color:#fff; font-weight:800;
+    font-size:30px; display:flex; align-items:center; justify-content:center; margin:0 auto 16px;
+    box-shadow:0 14px 34px rgba(228,17,31,.30); }
+  .gate h1{ margin:0; font-size:22px; font-weight:700; text-align:center; }
+  .gate .sub{ margin:8px 0 22px; font-size:13.5px; color:var(--c-text-muted); text-align:center; line-height:1.55; }
+  .gate .err{ font-size:13px; color:var(--pri); font-weight:600; margin-top:10px; text-align:center; min-height:19px; }
+
+  .sheet{ position:fixed; inset:0; z-index:60; background:rgba(14,15,18,.5); display:flex; flex-direction:column; justify-content:flex-end; }
+  .sheetin{ background:var(--c-bg); border-radius:22px 22px 0 0; max-height:92%; display:flex; flex-direction:column; overflow:hidden;
+    max-width:460px; width:100%; margin:0 auto; animation:fadeUp .2s ease-out; padding-bottom:env(safe-area-inset-bottom); }
+  .sheethead{ padding:16px 18px; border-bottom:1px solid var(--c-border); background:var(--c-surface); display:flex; justify-content:space-between; align-items:center; gap:12px; }
+  .sheetbody{ padding:16px 18px; overflow-y:auto; }
+
+  .toast{ position:fixed; left:50%; transform:translateX(-50%); bottom:calc(96px + env(safe-area-inset-bottom));
+    background:#0E0F12; color:#fff; font-size:13px; font-weight:600; padding:11px 18px; border-radius:999px;
+    z-index:90; box-shadow:0 8px 24px rgba(0,0,0,.3); animation:fadeUp .2s ease-out; max-width:88%; text-align:center; }
+
+  .empty{ text-align:center; padding:34px 16px; color:var(--c-text-muted); }
+  .empty .ic{ font-size:32px; margin-bottom:8px; }
+  .pinned{ border-color:var(--pri); background:#FFF6F6; }
+  .bar{ height:9px; border-radius:999px; background:#EEF0F3; overflow:hidden; }
+  .bar > div{ height:100%; background:var(--pri); border-radius:999px; transition:width .3s; }
+  .optbtn{ display:flex; align-items:center; gap:10px; width:100%; text-align:left; padding:12px 13px; border-radius:11px;
+    border:1.5px solid var(--c-border); background:var(--c-surface); font-size:14px; cursor:pointer; margin-bottom:8px; }
+  .optbtn.on{ border-color:var(--pri); background:#FFF6F6; }
+  select.in{ -webkit-appearance:none; appearance:none; }
+</style>
+</head>
+<body>
+
+<div class="gate" id="gate" hidden>
+  <div class="logo" id="gateLogo">ห</div>
+  <h1 id="gateTitle">ห้องเรียนของเรา</h1>
+  <p class="sub">เข้าสู่ระบบด้วยบัญชีที่ครูสร้างให้<br>ถ้ายังไม่มีบัญชี ให้ติดต่อครูประจำห้อง</p>
+  <div class="stack">
+    <input class="in" id="lgUser" placeholder="ชื่อผู้ใช้" autocomplete="username" autocapitalize="off" spellcheck="false">
+    <input class="in" id="lgPass" placeholder="รหัสผ่าน" type="password" autocomplete="current-password">
+    <button class="btn" id="lgBtn" type="button" style="padding:13px;font-size:15px;">เข้าสู่ระบบ</button>
+  </div>
+  <div class="err" id="lgErr"></div>
+</div>
+
+<div class="shell" id="app" hidden>
+  <div class="statusbar">
+    <div class="brand">
+      <div class="dot">ห</div>
+      <div>
+        <div class="nm" id="whoName"></div>
+        <div class="role" id="whoRole"></div>
+      </div>
+    </div>
+    <div class="row">
+      <button class="iconbtn" id="installBtn" hidden title="ติดตั้งลงหน้าจอ">⤓</button>
+      <button class="iconbtn" id="logoutBtn" title="ออกจากระบบ">⎋</button>
+    </div>
+  </div>
+  <div class="tabhead">
+    <div class="kicker" id="kicker"></div>
+    <h1 id="tabtitle"></h1>
+  </div>
+  <main class="view" id="view"></main>
+  <div class="navwrap"><div class="navbar" id="nav"></div></div>
+</div>
+
+<div id="overlays"></div>
+
+<script>
+"use strict";
+/* ═══════════════════════════════════════════════════════════════
+   ห้องเรียนของเรา — เว็บแอปประกาศ/โหวต/ฟีดโพสต์ ติดตั้งลงหน้าจอได้
+   ต้องตั้งค่า API_URL ให้ชี้ไปที่ Web app URL ของ Google Apps Script
+   (ดู apps-script/Code.gs และ README-setup.md)
+   ═══════════════════════════════════════════════════════════════ */
+var API_URL = "PASTE_YOUR_APPS_SCRIPT_WEB_APP_URL_HERE";
+
+var DEV_KEY = "room_device_v1";
+var SESS_KEY = "room_session_v1";
+
+function deviceId(){
+  var d=null;
+  try{ d=localStorage.getItem(DEV_KEY); }catch(e){}
+  if(!d){
+    var a=new Uint8Array(12);
+    (window.crypto||window.msCrypto).getRandomValues(a);
+    d=""; for(var i=0;i<a.length;i++){ var h=a[i].toString(16); d+=(h.length<2?"0":"")+h; }
+    try{ localStorage.setItem(DEV_KEY,d); }catch(e){}
+  }
+  return d;
+}
+function loadSession(){
+  try{ return JSON.parse(localStorage.getItem(SESS_KEY)||"null"); }catch(e){ return null; }
+}
+function saveSession(v){ try{ localStorage.setItem(SESS_KEY, JSON.stringify(v)); }catch(e){} }
+function clearSession(){ try{ localStorage.removeItem(SESS_KEY); }catch(e){} }
+
+function api(action, payload){
+  var body = Object.assign({ action:action, device:deviceId() }, S.session?{username:S.session.username}:{}, payload||{});
+  return fetch(API_URL, {
+    method:"POST",
+    headers:{ "Content-Type":"text/plain;charset=utf-8" },
+    body: JSON.stringify(body)
+  }).then(function(r){ return r.json(); })
+    .catch(function(){ return { ok:false, error:"เชื่อมต่อไม่ได้ ตรวจสอบอินเทอร์เน็ต" }; });
+}
+
+function esc(s){ return String(s==null?"":s).replace(/[&<>"']/g,function(c){ return {"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]; }); }
+function relDate(iso){
+  var d=new Date(iso); if(isNaN(d)) return "";
+  var s=Math.floor((Date.now()-d.getTime())/1000);
+  if(s<60) return "เมื่อครู่นี้";
+  if(s<3600) return Math.floor(s/60)+" นาทีที่แล้ว";
+  if(s<86400) return Math.floor(s/3600)+" ชม.ที่แล้ว";
+  if(s<2592000) return Math.floor(s/86400)+" วันที่แล้ว";
+  return d.getDate()+"/"+(d.getMonth()+1)+"/"+(d.getFullYear()+543);
+}
+
+var S = { tab:"feed", session:null, busy:false,
+  announcements:[], polls:[], posts:[], accounts:[],
+  composer:null, err:"" };
+
+function isAdmin(){ return S.session && S.session.role==="admin"; }
+
+function toast(msg){
+  var t=document.createElement("div");
+  t.className="toast"; t.textContent=msg;
+  document.body.appendChild(t);
+  setTimeout(function(){ t.remove(); },2600);
+}
+
+/* ═══ โหลดข้อมูล ═══ */
+function refreshAll(){
+  return Promise.all([
+    api("listAnnouncements",{}), api("listPolls",{}), api("listPosts",{}),
+    isAdmin() ? api("listAccounts",{}) : Promise.resolve({ok:true,items:[]})
+  ]).then(function(r){
+    if(r[0].ok) S.announcements=r[0].items;
+    if(r[1].ok) S.polls=r[1].items;
+    if(r[2].ok) S.posts=r[2].items;
+    if(r[3].ok) S.accounts=r[3].items;
+    render();
+  });
+}
+
+/* ═══ RENDER ═══ */
+function render(){
+  var titles={
+    feed:{k:"ฟีดของห้อง", t:"โพสต์ล่าสุด"},
+    ann:{k:"ข่าวสาร", t:"ประกาศ"},
+    poll:{k:"มีส่วนร่วม", t:"โหวต"},
+    acct:{k:"จัดการ", t:"บัญชีผู้ใช้"}
+  };
+  var tt=titles[S.tab]||titles.feed;
+  document.getElementById("kicker").textContent=tt.k;
+  document.getElementById("tabtitle").textContent=tt.t;
+  document.getElementById("whoName").textContent=S.session?S.session.displayName:"";
+  document.getElementById("whoRole").textContent=S.session? (isAdmin()?"แอดมิน":"นักเรียน") : "";
+
+  var navDefs=[{k:"feed",l:"ฟีด"},{k:"ann",l:"ประกาศ"},{k:"poll",l:"โหวต"}];
+  if(isAdmin()) navDefs.push({k:"acct",l:"บัญชี"});
+  document.getElementById("nav").innerHTML=navDefs.map(function(n){
+    return '<button class="navbtn'+(S.tab===n.k?" on":"")+'" onclick="A.tab(\''+n.k+'\')">'+n.l+'</button>';
+  }).join("");
+
+  var v=document.getElementById("view");
+  var top=v.scrollTop;
+  if(S.tab==="feed") v.innerHTML=viewFeed();
+  else if(S.tab==="ann") v.innerHTML=viewAnn();
+  else if(S.tab==="poll") v.innerHTML=viewPoll();
+  else if(S.tab==="acct" && isAdmin()) v.innerHTML=viewAccounts();
+  v.scrollTop=top;
+
+  renderOverlays();
+}
+
+function addBtn(label, action){
+  return '<button class="btn" style="width:100%;justify-content:center;" onclick="'+action+'">＋ '+label+'</button>';
+}
+
+/* ── ฟีดโพสต์ ── */
+function viewFeed(){
+  var h="";
+  if(isAdmin()) h+=addBtn("สร้างโพสต์ใหม่","A.openComposer('post')");
+  if(!S.posts.length){
+    h+='<div class="empty"><div class="ic">📭</div>ยังไม่มีโพสต์ในฟีด</div>';
+  } else {
+    S.posts.forEach(function(p){
+      h+='<div class="card">'+
+           (isAdmin()?'<div style="display:flex;justify-content:flex-end;"><button class="x" onclick="A.del(\'deletePost\',\''+p.id+'\')">✕</button></div>':'')+
+           (p.title?'<div style="font-size:15px;font-weight:700;margin-bottom:4px;">'+esc(p.title)+'</div>':'')+
+           '<div style="font-size:14px;line-height:1.7;white-space:pre-wrap;">'+esc(p.body)+'</div>'+
+           '<div class="muted" style="margin-top:8px;">'+relDate(p.createdAt)+'</div>'+
+         '</div>';
+    });
+  }
+  return '<div class="stack">'+h+'</div>';
+}
+
+/* ── ประกาศ ── */
+function viewAnn(){
+  var h="";
+  if(isAdmin()) h+=addBtn("สร้างประกาศใหม่","A.openComposer('ann')");
+  if(!S.announcements.length){
+    h+='<div class="empty"><div class="ic">📌</div>ยังไม่มีประกาศ</div>';
+  } else {
+    S.announcements.forEach(function(a){
+      h+='<div class="card'+(a.pinned?" pinned":"")+'">'+
+           '<div style="display:flex;justify-content:space-between;align-items:flex-start;gap:8px;">'+
+             '<div style="font-size:15px;font-weight:700;line-height:1.35;">'+(a.pinned?"📌 ":"")+esc(a.title)+'</div>'+
+             (isAdmin()?'<div class="row" style="flex:none;">'+
+               '<button class="x" title="ปักหมุด" onclick="A.act(\'togglePinAnnouncement\',{id:\''+a.id+'\'})">📌</button>'+
+               '<button class="x" onclick="A.del(\'deleteAnnouncement\',\''+a.id+'\')">✕</button></div>':'')+
+           '</div>'+
+           (a.body?'<div style="font-size:13.5px;line-height:1.7;margin-top:6px;white-space:pre-wrap;color:var(--c-text);">'+esc(a.body)+'</div>':'')+
+           '<div class="muted" style="margin-top:8px;">'+relDate(a.createdAt)+'</div>'+
+         '</div>';
+    });
+  }
+  return '<div class="stack">'+h+'</div>';
+}
+
+/* ── โหวต ── */
+function viewPoll(){
+  var h="";
+  if(isAdmin()) h+=addBtn("สร้างโหวตใหม่","A.openComposer('poll')");
+  if(!S.polls.length){
+    h+='<div class="empty"><div class="ic">🗳️</div>ยังไม่มีโหวต</div>';
+  } else {
+    S.polls.forEach(function(p){
+      var showResult = p.closed || p.mine!=null;
+      h+='<div class="card">'+
+           '<div style="display:flex;justify-content:space-between;align-items:flex-start;gap:8px;">'+
+             '<div style="font-size:15px;font-weight:700;line-height:1.35;flex:1;min-width:0;">'+esc(p.question)+'</div>'+
+             '<span class="chip" style="flex:none;background:'+(p.closed?'#EEF0F3':'#E3F4EA')+';color:'+(p.closed?'var(--c-text-muted)':'#1E9E5A')+';">'+(p.closed?"ปิดแล้ว":"เปิดโหวต")+'</span>'+
+           '</div>'+
+           '<div class="muted" style="margin-top:4px;">'+p.total+' คนโหวตแล้ว · '+relDate(p.createdAt)+'</div>'+
+           '<div style="margin-top:12px;">';
+      p.options.forEach(function(opt,i){
+        if(showResult){
+          var pct = p.total? Math.round((p.counts[i]/p.total)*100) : 0;
+          var mine = p.mine===i;
+          h+='<div style="margin-bottom:10px;">'+
+               '<div class="row" style="justify-content:space-between;font-size:13px;margin-bottom:5px;">'+
+                 '<span style="font-weight:'+(mine?"700":"500")+';color:'+(mine?"var(--pri)":"var(--c-text)")+';">'+(mine?"✓ ":"")+esc(opt)+'</span>'+
+                 '<span class="muted">'+p.counts[i]+' ('+pct+'%)</span>'+
+               '</div>'+
+               '<div class="bar"><div style="width:'+pct+'%;"></div></div>'+
+             '</div>';
+        } else {
+          h+='<button class="optbtn" onclick="A.vote(\''+p.id+'\','+i+')">'+esc(opt)+'</button>';
+        }
+      });
+      h+='</div>';
+      if(isAdmin()){
+        h+='<div class="row" style="margin-top:6px;">'+
+             '<button class="btn sm ghost" style="flex:1;" onclick="A.act(\'closePoll\',{id:\''+p.id+'\'})">'+(p.closed?"เปิดโหวตอีกครั้ง":"ปิดรับโหวต")+'</button>'+
+             '<button class="btn sm danger" onclick="A.del(\'deletePoll\',\''+p.id+'\')">ลบ</button>'+
+           '</div>';
+      }
+      h+='</div>';
+    });
+  }
+  return '<div class="stack">'+h+'</div>';
+}
+
+/* ── บัญชีผู้ใช้ (แอดมิน) ── */
+function viewAccounts(){
+  var h=addBtn("เพิ่มบัญชีนักเรียน/ครู","A.openComposer('account')");
+  S.accounts.forEach(function(u){
+    h+='<div class="card">'+
+         '<div class="row" style="justify-content:space-between;">'+
+           '<div style="min-width:0;">'+
+             '<div style="font-size:14.5px;font-weight:700;">'+esc(u.displayName)+' <span class="muted" style="font-weight:500;">@'+esc(u.username)+'</span></div>'+
+             '<div class="muted" style="margin-top:2px;">'+(u.role==="admin"?"แอดมิน":"นักเรียน")+' · '+
+               (u.hasDevice?"ผูกเครื่องแล้ว":"ยังไม่ได้ผูกเครื่อง")+' · '+(u.active?"ใช้งานได้":"ถูกระงับ")+'</div>'+
+           '</div>'+
+         '</div>'+
+         '<div style="display:flex;flex-wrap:wrap;gap:7px;margin-top:11px;">'+
+           '<button class="btn sm ghost" onclick="A.act(\'resetDevice\',{target:\''+u.username+'\'})">รีเซ็ตเครื่อง</button>'+
+           '<button class="btn sm ghost" onclick="A.resetPass(\''+u.username+'\')">ตั้งรหัสใหม่</button>'+
+           '<button class="btn sm ghost" onclick="A.act(\'setActive\',{target:\''+u.username+'\',active:'+(!u.active)+'})">'+(u.active?"ระงับใช้งาน":"เปิดใช้งาน")+'</button>'+
+           (u.role!=="admin"?'<button class="btn sm danger" onclick="A.del(\'deleteAccount\',\''+u.username+'\',\'target\')">ลบบัญชี</button>':'')+
+         '</div>'+
+       '</div>';
+  });
+  return '<div class="stack">'+h+'</div>';
+}
+
+/* ── ฟอร์มสร้างเนื้อหา (composer sheet) ── */
+function composerSheet(){
+  var c=S.composer; if(!c) return "";
+  var title={ann:"สร้างประกาศ", post:"สร้างโพสต์", poll:"สร้างโหวต", account:"เพิ่มบัญชี"}[c.type];
+  var body="";
+  if(c.type==="ann"){
+    body='<label class="lbl">หัวข้อ</label>'+
+         '<input class="in" id="cf_title" value="'+esc(c.title||"")+'" oninput="A.cf(\'title\',this.value)" style="margin:6px 0 12px;">'+
+         '<label class="lbl">รายละเอียด (ไม่บังคับ)</label>'+
+         '<textarea class="in" id="cf_body" oninput="A.cf(\'body\',this.value)" style="margin:6px 0 12px;">'+esc(c.body||"")+'</textarea>'+
+         '<label class="row" style="gap:8px;font-size:13.5px;"><input type="checkbox" '+(c.pinned?"checked":"")+' onchange="A.cf(\'pinned\',this.checked)"> ปักหมุดไว้บนสุด</label>';
+  } else if(c.type==="post"){
+    body='<label class="lbl">หัวข้อ (ไม่บังคับ)</label>'+
+         '<input class="in" id="cf_title" value="'+esc(c.title||"")+'" oninput="A.cf(\'title\',this.value)" style="margin:6px 0 12px;">'+
+         '<label class="lbl">เนื้อหา</label>'+
+         '<textarea class="in" id="cf_body" oninput="A.cf(\'body\',this.value)" style="margin:6px 0;">'+esc(c.body||"")+'</textarea>';
+  } else if(c.type==="poll"){
+    var opts=c.options||["",""];
+    body='<label class="lbl">คำถาม</label>'+
+         '<input class="in" value="'+esc(c.question||"")+'" oninput="A.cf(\'question\',this.value)" style="margin:6px 0 12px;">'+
+         '<label class="lbl">ตัวเลือก</label>'+
+         '<div style="display:flex;flex-direction:column;gap:8px;margin:6px 0 10px;">'+
+           opts.map(function(o,i){
+             return '<div class="row"><input class="in" value="'+esc(o)+'" placeholder="ตัวเลือกที่ '+(i+1)+'" oninput="A.cfOpt('+i+',this.value)">'+
+               (opts.length>2?'<button class="x" onclick="A.cfOptDel('+i+')">✕</button>':'')+'</div>';
+           }).join("")+
+         '</div>'+
+         (opts.length<6?'<button class="btn sm ghost" onclick="A.cfOptAdd()">＋ เพิ่มตัวเลือก</button>':'');
+  } else if(c.type==="account"){
+    body='<label class="lbl">ชื่อผู้ใช้ (a-z, 0-9, . _ -)</label>'+
+         '<input class="in" value="'+esc(c.username||"")+'" oninput="A.cf(\'username\',this.value)" style="margin:6px 0 12px;" autocapitalize="off">'+
+         '<label class="lbl">ชื่อที่แสดง</label>'+
+         '<input class="in" value="'+esc(c.displayName||"")+'" oninput="A.cf(\'displayName\',this.value)" style="margin:6px 0 12px;">'+
+         '<label class="lbl">รหัสผ่านเริ่มต้น</label>'+
+         '<input class="in" value="'+esc(c.password||"")+'" oninput="A.cf(\'password\',this.value)" style="margin:6px 0 12px;">'+
+         '<label class="row" style="gap:8px;font-size:13.5px;"><input type="checkbox" '+(c.role==="admin"?"checked":"")+' onchange="A.cf(\'role\',this.checked?\'admin\':\'user\')"> ให้สิทธิ์แอดมิน</label>';
+  }
+  return '<div class="sheet"><div class="sheetin">'+
+    '<div class="sheethead"><div style="font-size:16px;font-weight:700;">'+title+'</div><button class="x" onclick="A.closeComposer()">✕</button></div>'+
+    '<div class="sheetbody">'+body+
+      (S.composer.err?'<div class="err" style="text-align:left;margin-top:4px;">'+esc(S.composer.err)+'</div>':'')+
+      '<button class="btn" style="width:100%;margin-top:16px;padding:13px;" '+(S.busy?"disabled":"")+' onclick="A.submitComposer()">บันทึก</button>'+
+    '</div>'+
+  '</div></div>';
+}
+function renderOverlays(){
+  document.getElementById("overlays").innerHTML = S.composer ? composerSheet() : "";
+}
+
+/* ═══════════ ACTIONS ═══════════ */
+var A={
+  tab:function(k){ S.tab=k; render(); document.getElementById("view").scrollTop=0; },
+
+  openComposer:function(type){
+    S.composer = { type:type, options: type==="poll"?["",""]:undefined, err:"" };
+    render();
+  },
+  closeComposer:function(){ S.composer=null; render(); },
+  cf:function(k,v){ if(S.composer) S.composer[k]=v; },
+  cfOpt:function(i,v){ S.composer.options[i]=v; },
+  cfOptAdd:function(){ S.composer.options.push(""); render(); },
+  cfOptDel:function(i){ S.composer.options.splice(i,1); render(); },
+
+  submitComposer:function(){
+    var c=S.composer; if(!c || S.busy) return;
+    S.busy=true; c.err="";
+    var call, done=function(){ S.busy=false; };
+    if(c.type==="ann") call=api("createAnnouncement",{title:c.title,body:c.body,pinned:!!c.pinned});
+    else if(c.type==="post") call=api("createPost",{title:c.title,body:c.body});
+    else if(c.type==="poll") call=api("createPoll",{question:c.question,options:c.options});
+    else if(c.type==="account") call=api("createAccount",{username:c.username,displayName:c.displayName,password:c.password,role:c.role});
+    call.then(function(r){
+      done();
+      if(!r.ok){ c.err=r.error||"ทำรายการไม่สำเร็จ"; render(); return; }
+      S.composer=null;
+      toast("บันทึกแล้ว");
+      refreshAll();
+    });
+  },
+
+  act:function(action,payload){
+    if(S.busy) return; S.busy=true;
+    api(action,payload).then(function(r){
+      S.busy=false;
+      if(!r.ok){ toast(r.error||"ทำรายการไม่สำเร็จ"); return; }
+      refreshAll();
+    });
+  },
+  del:function(action,id,key){
+    if(!confirm("ยืนยันการลบ? ย้อนกลับไม่ได้")) return;
+    var payload={}; payload[key||"id"]=id;
+    A.act(action,payload);
+  },
+  vote:function(pollId,idx){ A.act("vote",{pollId:pollId,optionIndex:idx}); },
+  resetPass:function(username){
+    var p=prompt("ตั้งรหัสผ่านใหม่ให้ @"+username+" (อย่างน้อย 4 ตัว)");
+    if(p==null) return;
+    A.act("resetPassword",{target:username,newPassword:p});
+  },
+
+  logout:function(){
+    if(!confirm("ออกจากระบบ?")) return;
+    clearSession(); S.session=null; location.reload();
+  }
+};
+window.A=A;
+
+/* ═══ เข้าสู่ระบบ ═══ */
+function doLogin(){
+  var u=document.getElementById("lgUser").value.trim();
+  var p=document.getElementById("lgPass").value;
+  var err=document.getElementById("lgErr");
+  var btn=document.getElementById("lgBtn");
+  err.textContent="";
+  if(!u || !p){ err.textContent="กรอกชื่อผู้ใช้และรหัสผ่านให้ครบ"; return; }
+  btn.disabled=true; btn.textContent="กำลังเข้าสู่ระบบ…";
+  fetch(API_URL,{ method:"POST", headers:{"Content-Type":"text/plain;charset=utf-8"},
+    body: JSON.stringify({ action:"login", username:u, password:p, device:deviceId() }) })
+    .then(function(r){ return r.json(); })
+    .then(function(r){
+      btn.disabled=false; btn.textContent="เข้าสู่ระบบ";
+      if(!r.ok){
+        var MSG={ notfound:"ไม่พบบัญชีนี้", disabled:"บัญชีถูกระงับการใช้งาน", wrongpass:"รหัสผ่านไม่ถูกต้อง",
+                   deviceused:"บัญชีนี้ผูกกับเครื่องอื่นไปแล้ว — ให้ครูกด “รีเซ็ตเครื่อง” ให้ที่เมนูบัญชี",
+                   nodevice:"เกิดข้อผิดพลาด ลองรีเฟรชหน้าเว็บแล้วลองใหม่" };
+        err.textContent = MSG[r.reason] || r.error || "เข้าสู่ระบบไม่สำเร็จ";
+        return;
+      }
+      var sess={ username:r.username, role:r.role, displayName:r.displayName };
+      saveSession(sess); S.session=sess;
+      showApp();
+    })
+    .catch(function(){ btn.disabled=false; btn.textContent="เข้าสู่ระบบ"; err.textContent="เชื่อมต่อไม่ได้ ตรวจสอบอินเทอร์เน็ต"; });
+}
+
+function showGate(){
+  document.getElementById("app").hidden=true;
+  document.getElementById("gate").hidden=false;
+  document.getElementById("lgBtn").onclick=doLogin;
+  document.getElementById("lgPass").addEventListener("keydown",function(e){ if(e.key==="Enter") doLogin(); });
+}
+function showApp(){
+  document.getElementById("gate").hidden=true;
+  document.getElementById("app").hidden=false;
+  S.tab="feed";
+  render();
+  refreshAll();
+  document.getElementById("logoutBtn").onclick=A.logout;
+  var ib=document.getElementById("installBtn");
+  if(ib){ ib.hidden = isStandalone() || !deferredPrompt; ib.onclick=doInstall; }
+}
+
+function boot(){
+  if(API_URL.indexOf("PASTE_YOUR_APPS_SCRIPT")===0){
+    document.body.innerHTML='<div style="padding:40px 24px;text-align:center;font-family:sans-serif;color:#B60D18;">'+
+      '⚠️ ยังไม่ได้ตั้งค่า API_URL<br><br>เปิดไฟล์ index.html แล้วแก้ตัวแปร API_URL ในแท็ก &lt;script&gt;<br>ให้เป็นลิงก์ Web app ที่ได้จาก Google Apps Script (ดู README-setup.md)</div>';
+    return;
+  }
+  var sess=loadSession();
+  if(sess){ S.session=sess; showApp(); }
+  else showGate();
+}
+
+/* ═══ ติดตั้งลงหน้าจอโฮม ═══ */
+var deferredPrompt=null;
+window.addEventListener("beforeinstallprompt",function(e){
+  e.preventDefault(); deferredPrompt=e;
+  var ib=document.getElementById("installBtn"); if(ib && S.session) ib.hidden=false;
+});
+window.addEventListener("appinstalled",function(){ deferredPrompt=null; var ib=document.getElementById("installBtn"); if(ib) ib.hidden=true; });
+function isStandalone(){
+  return (window.matchMedia && window.matchMedia("(display-mode: standalone)").matches) || window.navigator.standalone===true;
+}
+function isIOSDevice(){
+  var ua=navigator.userAgent||"";
+  return /iPad|iPhone|iPod/.test(ua) || (/Macintosh/.test(ua) && navigator.maxTouchPoints>1);
+}
+function doInstall(){
+  if(isIOSDevice()){
+    alert("วิธีติดตั้งลงหน้าจอโฮม (iPhone/iPad):\n1) แตะปุ่มแชร์ (กรอบสี่เหลี่ยมมีลูกศรชี้ขึ้น) แถบด้านล่างของ Safari\n2) เลื่อนลงแล้วเลือก “เพิ่มไปยังหน้าจอโฮม”\n3) แตะ “เพิ่ม”");
+    return;
+  }
+  if(!deferredPrompt) return;
+  deferredPrompt.prompt();
+  deferredPrompt.userChoice.then(function(){ deferredPrompt=null; });
+}
+
+boot();
+
+if("serviceWorker" in navigator && location.protocol!=="file:"){
+  window.addEventListener("load",function(){
+    navigator.serviceWorker.register("sw.js").catch(function(){});
+  });
+}
+</script>
+</body>
+</html>
