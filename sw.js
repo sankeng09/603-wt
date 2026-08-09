@@ -38,11 +38,12 @@ self.addEventListener("fetch", function(e){
    ⚠️ ต้องแก้ FIREBASE_CONFIG ด้านล่างให้ตรงกับค่าเดียวกันที่ใส่ไว้ใน index.html
    ถ้ายังไม่ได้ตั้งค่า (ยังเป็น PASTE_...) จะข้ามส่วนนี้ไปเงียบๆ แอปยังใช้งานได้ปกติ */
 var FIREBASE_CONFIG = {
-  apiKey: "PASTE_FIREBASE_API_KEY",
-  authDomain: "PASTE_PROJECT_ID.firebaseapp.com",
-  projectId: "PASTE_PROJECT_ID",
-  messagingSenderId: "PASTE_SENDER_ID",
-  appId: "PASTE_APP_ID"
+  apiKey: "AIzaSyD3p6v9ke3QQpR1J3lhV5N6-OVwFgBuWPo",
+  authDomain: "wt-85a44.firebaseapp.com",
+  projectId: "wt-85a44",
+  storageBucket: "wt-85a44.firebasestorage.app",
+  messagingSenderId: "1000764979202",
+  appId: "1:1000764979202:web:c21f421e7e435f8be70f1b"
 };
 
 if(FIREBASE_CONFIG.apiKey.indexOf("PASTE_")!==0){
