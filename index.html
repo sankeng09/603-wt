@@ -223,7 +223,7 @@
    ห้องเรียนของเรา — ประกาศ / โหวต / ฟีดโพสต์ / ตารางเรียน
    ต้องตั้งค่า API_URL ให้ชี้ไปที่ Web app URL ของ Google Apps Script
    ═══════════════════════════════════════════════════════════════ */
-var API_URL = "https://script.google.com/macros/s/AKfycbwQOPS7NzVUH01-X9YX2PK7O3LIRTWgPtQzh9KJQuWcCAHkMSK8iFzZEE_SkO1725-X/exec";
+var API_URL = "https://script.google.com/macros/s/AKfycbyQp9XspVHSqP8sZKhLCQknbT9F3L5BgmveEpoa386Z21aR0KeFvPzPe_w5Q3Kx71fX/exec";
 
 /* ── ตั้งค่า Firebase (สำหรับ push notification แม้ปิดแอป) ──
    หาค่าเหล่านี้ได้จาก Firebase Console (ดู README-setup.md หัวข้อ "ตั้งค่า Push Notification")
@@ -535,18 +535,14 @@ function viewSchedule(){
 function viewCoins(){
   var c = S.coins||{top:[],myTotal:0,myLastClaim:null,myLastRob:null};
   var now = Date.now();
-  var nowD = new Date();
   var lastCD = c.myLastClaim ? new Date(c.myLastClaim) : null;
   var lastRD = c.myLastRob ? new Date(c.myLastRob) : null;
-  var isSameDay = function(d1, d2){ return d1 && d2 && d1.getFullYear()===d2.getFullYear() && d1.getMonth()===d2.getMonth() && d1.getDate()===d2.getDate(); };
-  
-  var claimReady = !lastCD || !isSameDay(lastCD, nowD);
-  var robReady = !lastRD || !isSameDay(lastRD, nowD);
-  
-  var tomorrow = new Date(nowD.getFullYear(), nowD.getMonth(), nowD.getDate() + 1);
-  var remainMs = tomorrow.getTime() - nowD.getTime();
-  var claimRemain = claimReady ? 0 : remainMs;
-  var robRemain = robReady ? 0 : remainMs;
+  var COOLDOWN_MS = 24*60*60*1000; // คูลดาวน์จริง 24 ชม. นับจากครั้งล่าสุด ไม่ใช่ตามเที่ยงคืน (ต้องตรงกับฝั่ง Code.gs)
+
+  var claimRemain = lastCD ? Math.max(0, COOLDOWN_MS - (now - lastCD.getTime())) : 0;
+  var robRemain = lastRD ? Math.max(0, COOLDOWN_MS - (now - lastRD.getTime())) : 0;
+  var claimReady = claimRemain <= 0;
+  var robReady = robRemain <= 0;
 
   var h='<div class="card fade-in" style="text-align:center;background:linear-gradient(135deg,var(--pri),var(--priD));border:none;">'+
       '<div style="font-size:12px;color:rgba(255,255,255,.82);font-weight:700;letter-spacing:.05em;">คอยน์ของฉันเดือนนี้</div>'+
@@ -994,13 +990,15 @@ function stopAutoRefresh(){ if(autoRefreshTimer){ clearInterval(autoRefreshTimer
 document.addEventListener("visibilitychange",function(){
   if(document.visibilityState==="visible" && S.session){ refreshAll(); if(S.tab==="coins") refreshCoins(); }
 });
-/* นับถอยหลังแบบสด ๆ (เวลาปลดล็อกกล่องสุ่ม/ปล้นคอยน์) — วาดใหม่ทุกวินาทีเฉพาะตอนอยู่แท็บคอยน์ */
+/* นับถอยหลังแบบสด ๆ (เวลาปลดล็อกกล่องสุ่ม/ปล้นคอยน์) — วาดใหม่ทุก 1 นาทีเฉพาะตอนอยู่แท็บคอยน์
+   (เดิมวาดใหม่ทุกวินาทีซึ่งถี่เกินความจำเป็น เพราะคูลดาวน์เป็นหลักชั่วโมง ไม่ต้องละเอียดระดับวินาที) */
+var COINS_TICK_MS = 60000;
 var coinsTickTimer=null;
 function startCoinsTick(){
   stopCoinsTick();
   coinsTickTimer=setInterval(function(){
     if(S.tab==="coins" && !S.lootDlg && !S.confirmDlg && !S.setCoinsDlg) render();
-  },1000);
+  },COINS_TICK_MS);
 }
 function stopCoinsTick(){ if(coinsTickTimer){ clearInterval(coinsTickTimer); coinsTickTimer=null; } }
 

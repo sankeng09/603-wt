@@ -455,15 +455,18 @@ function coinRow_(acc){
   return row;
 }
 
+var COIN_COOLDOWN_MS = 24*60*60*1000; // คูลดาวน์จริง 24 ชม. นับจากครั้งล่าสุด ไม่ใช่ตามเที่ยงคืน
+
 ACTIONS.claimDaily = function(body){
   var f = verifySession_(body);
   var row = coinRow_(f);
   var last = row.obj.lastClaim ? new Date(row.obj.lastClaim) : null;
   var now = new Date();
-  var tz = "Asia/Bangkok";
-  if(last && Utilities.formatDate(last, tz, "yyyy-MM-dd") === Utilities.formatDate(now, tz, "yyyy-MM-dd")){
-    var tomorrow = new Date(now.getFullYear(), now.getMonth(), now.getDate() + 1);
-    return {ok:false, reason:"cooldown", remainMs: tomorrow.getTime() - now.getTime()};
+  if(last){
+    var elapsed = now.getTime() - last.getTime();
+    if(elapsed < COIN_COOLDOWN_MS){
+      return {ok:false, reason:"cooldown", remainMs: COIN_COOLDOWN_MS - elapsed};
+    }
   }
   var r = Math.random()*100, coin;
   if(r<35) coin=1; else if(r<65) coin=2; else if(r<85) coin=3; else if(r<95) coin=4; else coin=5;
@@ -480,10 +483,11 @@ ACTIONS.robCoin = function(body){
   var myRow = coinRow_(f);
   var last = myRow.obj.lastRob ? new Date(myRow.obj.lastRob) : null;
   var now = new Date();
-  var tz = "Asia/Bangkok";
-  if(last && Utilities.formatDate(last, tz, "yyyy-MM-dd") === Utilities.formatDate(now, tz, "yyyy-MM-dd")){
-    var tomorrow = new Date(now.getFullYear(), now.getMonth(), now.getDate() + 1);
-    return {ok:false, reason:"cooldown", remainMs: tomorrow.getTime() - now.getTime()};
+  if(last){
+    var elapsed = now.getTime() - last.getTime();
+    if(elapsed < COIN_COOLDOWN_MS){
+      return {ok:false, reason:"cooldown", remainMs: COIN_COOLDOWN_MS - elapsed};
+    }
   }
   var targetAcc = findAccount_(body.target);
   if(!targetAcc) throw new Error("ไม่พบผู้ใช้เป้าหมาย");
