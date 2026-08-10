@@ -43,6 +43,12 @@ function sheet_(key){
     sh.appendRow(def.cols);
     sh.setFrozenRows(1);
   }
+  // ป้องกัน Google Sheets ตีความ text บางคอลัมน์ (เช่น "2026-08" หรือ ISO timestamp) เป็นวันที่โดยอัตโนมัติ
+  // ซึ่งจะทำให้การเทียบค่าแบบ string (===) พังเงียบ ๆ (คอยน์หายเวลารีเฟรช) — บังคับให้เป็น Plain text เสมอ
+  // ทำทุกครั้งที่เรียก (ไม่ใช่แค่ตอนสร้างใหม่) เผื่อชีตเก่าที่เคยติดตั้งไปแล้วก่อนแก้บั๊กนี้
+  if(key==="COINS" && sh.getMaxRows()>1){
+    sh.getRange(2, 4, sh.getMaxRows()-1, 3).setNumberFormat("@"); // monthKey, lastClaim, lastRob
+  }
   return sh;
 }
 
@@ -436,6 +442,13 @@ ACTIONS.unregisterPushToken = function(body){
 
 /* ── ระบบคอยน์ (ล็อกอินรายวัน / ปล้นคอยน์ / อันดับ) ── */
 function monthKey_(){ var d=new Date(); return d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0"); }
+/* ทำให้ค่า monthKey ที่อ่านจากชีตเป็น string "YYYY-MM" เสมอ ไม่ว่า Google Sheets จะแอบตีความเซลล์เป็น Date
+   object ให้เองหรือไม่ (เคยเป็นสาเหตุให้คอยน์รีเซ็ตเป็น 0 ทุกครั้งที่มีการอ่าน/รีเฟรช เพราะเทียบ string กับ Date
+   ด้วย === แล้วไม่เท่ากันเสมอ ทั้งที่จริงเป็นเดือนเดียวกัน) */
+function normMonthKey_(v){
+  if(v instanceof Date) return v.getFullYear()+"-"+String(v.getMonth()+1).padStart(2,"0");
+  return String(v||"");
+}
 /* หาแถวคอยน์ของบัญชี ถ้าไม่มีให้สร้างใหม่ และล้างยอดอัตโนมัติถ้าข้ามเดือนแล้ว (รีเซ็ตรายเดือนแบบ lazy ไม่ต้องมี trigger แยก) */
 function coinRow_(acc){
   var row = findRow_("COINS", function(o){ return String(o.username).toLowerCase()===String(acc.obj.username).toLowerCase(); });
@@ -443,7 +456,7 @@ function coinRow_(acc){
     sheet_("COINS").appendRow([acc.obj.username, acc.obj.displayName, 0, monthKey_(), "", ""]);
     row = findRow_("COINS", function(o){ return String(o.username).toLowerCase()===String(acc.obj.username).toLowerCase(); });
   }
-  if(row.obj.monthKey !== monthKey_()){
+  if(normMonthKey_(row.obj.monthKey) !== monthKey_()){
     writeCell_(row.sheet, row.row, row.head, "coins", 0);
     writeCell_(row.sheet, row.row, row.head, "monthKey", monthKey_());
     row.obj.coins = 0; row.obj.monthKey = monthKey_();
@@ -515,7 +528,7 @@ ACTIONS.listCoinLeaderboard = function(body){
   var mk = monthKey_();
   var items = rows.map(function(o){
     return { username:o.username, displayName:o.displayName||o.username,
-             coins: (o.monthKey===mk) ? (Number(o.coins)||0) : 0 };
+             coins: (normMonthKey_(o.monthKey)===mk) ? (Number(o.coins)||0) : 0 };
   }).sort(function(a,b){ return b.coins-a.coins; });
   var top = items.slice(0,5);
   var myRow = coinRow_(f);
@@ -529,7 +542,7 @@ ACTIONS.listRobTargets = function(body){
   var coinsRows = readAll_("COINS");
   var mk = monthKey_();
   var coinMap = {};
-  coinsRows.forEach(function(o){ coinMap[String(o.username).toLowerCase()] = (o.monthKey===mk)?(Number(o.coins)||0):0; });
+  coinsRows.forEach(function(o){ coinMap[String(o.username).toLowerCase()] = (normMonthKey_(o.monthKey)===mk)?(Number(o.coins)||0):0; });
   var items = accs.filter(function(a){
     return String(a.username).toLowerCase()!==String(f.obj.username).toLowerCase() && a.active!==false;
   }).map(function(a){
