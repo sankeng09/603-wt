@@ -1,6 +1,6 @@
 /* service worker — แคชเปลือกแอป (ออฟไลน์) + รับ push notification ตอนแอปปิด/อยู่เบื้องหลัง
    บัมพ์เลข CACHE_NAME ทุกครั้งที่แก้ไฟล์หลัก เพื่อบังคับให้เครื่องนักเรียนโหลดของใหม่ */
-var CACHE_NAME = "room-app-v3";
+var CACHE_NAME = "room-app-v4";
 var SHELL = [ "./", "./index.html", "./manifest.webmanifest" ];
 
 self.addEventListener("install", function(e){
