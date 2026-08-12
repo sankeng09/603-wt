@@ -117,6 +117,15 @@ function memoryFolder_(){
   return folder;
 }
 
+/* รันด้วยตนเองจาก Apps Script Editor เพียงครั้งแรกโดยเจ้าของโปรเจกต์
+   เพื่อให้ Google แสดงหน้าขอสิทธิ์ Drive และสร้างโฟลเดอร์เก็บรูปไว้ล่วงหน้า */
+function setupMemoryDrive(){
+  ensureSeed_();
+  var folder = memoryFolder_();
+  Logger.log("ตั้งค่าโฟลเดอร์ความทรงจำเรียบร้อย: "+folder.getUrl());
+  return {ok:true, folderId:folder.getId(), folderUrl:folder.getUrl()};
+}
+
 function memoryText_(value, field, maxLength, required){
   var text = String(value || "").trim();
   if(required && !text) throw new Error("กรุณากรอก"+field);
