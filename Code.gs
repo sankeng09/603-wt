@@ -30,7 +30,8 @@ var SHEETS = {
   PUSHTOKENS:    { name:"PushTokens",    cols:["username","token","updatedAt"] },
   COINS:         { name:"Coins",         cols:["username","displayName","coins","monthKey","lastClaim","lastRob"] },
   TIMELETTERS:   { name:"TimeLetters",   cols:["id","authorToken","title","body","unlockAt","createdAt"] },
-  COUNTDOWNS:    { name:"Countdowns",    cols:["id","title","targetAt","createdAt","createdBy","updatedAt"] }
+  COUNTDOWNS:    { name:"Countdowns",    cols:["id","title","targetAt","createdAt","createdBy","updatedAt"] },
+  MEMORIES:      { name:"Memories",       cols:["id","fileId","uploaderUsername","uploaderName","caption","eventName","status","createdAt","updatedAt","approvedAt","approvedBy","reviewNote"] }
 };
 
 function ss_(){ return SpreadsheetApp.getActiveSpreadsheet(); }
@@ -49,7 +50,7 @@ function sheet_(key){
   if(key==="COINS" && sh.getMaxRows()>1){
     sh.getRange(2, 4, sh.getMaxRows()-1, 3).setNumberFormat("@"); // monthKey, lastClaim, lastRob
   }
-  if((key==="TIMELETTERS" || key==="COUNTDOWNS") && sh.getMaxRows()>1){
+  if((key==="TIMELETTERS" || key==="COUNTDOWNS" || key==="MEMORIES") && sh.getMaxRows()>1){
     sh.getRange(2, 1, sh.getMaxRows()-1, def.cols.length).setNumberFormat("@");
   }
   return sh;
@@ -96,6 +97,62 @@ function findRow_(key, matchFn){
   return null;
 }
 function writeCell_(sheet, row, head, col, val){ sheet.getRange(row, head.indexOf(col)+1).setValue(val); }
+
+/* ── กำแพงความทรงจำ ──
+   รูปที่เพิ่งอัปโหลดจะเป็น private ใน Drive และขึ้นสถานะ pending
+   จะเปิดแบบ anyone-with-link เฉพาะเมื่อแอดมินอนุมัติเท่านั้น เพื่อไม่ให้รูปที่ยังไม่ได้ตรวจหลุดสู่แกลเลอรี */
+var MEMORY_FOLDER_PROPERTY = "MEMORY_DRIVE_FOLDER_ID";
+var MEMORY_MAX_BYTES = 2 * 1024 * 1024;
+var MEMORY_ALLOWED_TYPES = {"image/jpeg":"jpg", "image/png":"png", "image/webp":"webp"};
+
+function memoryFolder_(){
+  var props = PropertiesService.getScriptProperties();
+  var folderId = props.getProperty(MEMORY_FOLDER_PROPERTY);
+  if(folderId){
+    try{ return DriveApp.getFolderById(folderId); }
+    catch(e){ throw new Error("ไม่พบโฟลเดอร์ความทรงจำใน Google Drive กรุณาตรวจสอบ MEMORY_DRIVE_FOLDER_ID"); }
+  }
+  var folder = DriveApp.createFolder("ความทรงจำ ห้อง ม.6/3");
+  props.setProperty(MEMORY_FOLDER_PROPERTY, folder.getId());
+  return folder;
+}
+
+function memoryText_(value, field, maxLength, required){
+  var text = String(value || "").trim();
+  if(required && !text) throw new Error("กรุณากรอก"+field);
+  if(text.length > maxLength) throw new Error(field+"ยาวเกิน "+maxLength+" ตัวอักษร");
+  return text;
+}
+function memoryImageUrl_(fileId, size){
+  return "https://drive.google.com/thumbnail?id="+encodeURIComponent(String(fileId))+"&sz=w"+(size||1200);
+}
+function memoryView_(item, mode){
+  var view = {
+    id:String(item.id),
+    caption:String(item.caption || ""),
+    eventName:String(item.eventName || ""),
+    status:String(item.status || "pending"),
+    createdAt:timeIso_(item.createdAt),
+    updatedAt:timeIso_(item.updatedAt),
+    imageUrl:memoryImageUrl_(item.fileId, 1200),
+    thumbnailUrl:memoryImageUrl_(item.fileId, 720)
+  };
+  if(mode==="owner" || mode==="admin"){
+    view.reviewNote = String(item.reviewNote || "");
+    view.approvedAt = item.approvedAt ? timeIso_(item.approvedAt) : "";
+  }
+  if(mode==="admin"){
+    view.uploaderUsername = String(item.uploaderUsername || "");
+    view.uploaderName = String(item.uploaderName || "");
+    view.approvedBy = String(item.approvedBy || "");
+    view.fileId = String(item.fileId || "");
+  }
+  return view;
+}
+function trashMemoryFile_(fileId){
+  if(!fileId) return;
+  try{ DriveApp.getFileById(String(fileId)).setTrashed(true); }catch(e){}
+}
 
 /* ── auth ── */
 function findAccount_(username){
@@ -731,6 +788,132 @@ ACTIONS.deleteMyTimeLetter = function(body){
     return String(letter.id)===id && String(letter.authorToken)===authorToken;
   });
   if(!found) throw new Error("ไม่พบจดหมาย หรือคุณไม่มีสิทธิ์ลบจดหมายฉบับนี้");
+  found.sheet.deleteRow(found.row);
+  return {ok:true};
+};
+
+/* ── กำแพงความทรงจำ ── */
+ACTIONS.createMemory = function(body){
+  var account = verifySession_(body);
+  var mimeType = String(body.mimeType || "").toLowerCase();
+  var extension = MEMORY_ALLOWED_TYPES[mimeType];
+  if(!extension) throw new Error("รองรับเฉพาะไฟล์ JPG, PNG และ WebP");
+  var base64 = String(body.imageBase64 || "").replace(/\s/g, "");
+  if(!base64) throw new Error("ไม่พบข้อมูลรูปภาพ");
+  var bytes;
+  try{ bytes = Utilities.base64Decode(base64); }
+  catch(e){ throw new Error("ไฟล์รูปภาพไม่ถูกต้อง"); }
+  if(!bytes.length || bytes.length > MEMORY_MAX_BYTES) throw new Error("รูปภาพต้องมีขนาดไม่เกิน 2 MB หลังปรับขนาด");
+  var caption = memoryText_(body.caption, "คำบรรยาย", 240, false);
+  var eventName = memoryText_(body.eventName, "ชื่อกิจกรรม", 80, false);
+  var id = newId_();
+  var now = nowIso_();
+  var file = null;
+  try{
+    var blob = Utilities.newBlob(bytes, mimeType, "memory-"+id+"."+extension);
+    file = memoryFolder_().createFile(blob).setName("memory-"+id+"."+extension);
+    sheet_("MEMORIES").appendRow([id, file.getId(), account.obj.username, account.obj.displayName || account.obj.username, caption, eventName, "pending", now, now, "", "", ""]);
+  }catch(e){
+    if(file) trashMemoryFile_(file.getId());
+    throw new Error("บันทึกรูปภาพไม่สำเร็จ: "+String(e && e.message || e));
+  }
+  return {ok:true, memory:{id:id, caption:caption, eventName:eventName, status:"pending", createdAt:now}};
+};
+
+ACTIONS.listMemories = function(body){
+  verifySession_(body);
+  var items = readAll_("MEMORIES").filter(function(item){ return String(item.status)==="approved"; }).map(function(item){ return memoryView_(item, "public"); });
+  items.sort(function(a,b){ return new Date(b.createdAt).getTime()-new Date(a.createdAt).getTime(); });
+  return {ok:true, items:items};
+};
+
+ACTIONS.listMyMemories = function(body){
+  var account = verifySession_(body);
+  var username = String(account.obj.username).toLowerCase();
+  var items = readAll_("MEMORIES").filter(function(item){ return String(item.uploaderUsername).toLowerCase()===username; }).map(function(item){ return memoryView_(item, "owner"); });
+  items.sort(function(a,b){ return new Date(b.createdAt).getTime()-new Date(a.createdAt).getTime(); });
+  return {ok:true, items:items};
+};
+
+ACTIONS.listMemoryModeration = function(body){
+  requireAdmin_(body);
+  var items = readAll_("MEMORIES").filter(function(item){ return String(item.status)==="pending"; }).map(function(item){ return memoryView_(item, "admin"); });
+  items.sort(function(a,b){ return new Date(a.createdAt).getTime()-new Date(b.createdAt).getTime(); });
+  return {ok:true, items:items};
+};
+
+/* ส่งตัวอย่างรูปเป็น data URL เฉพาะเจ้าของหรือแอดมิน เพื่อให้รูป pending
+   ยังเป็น private ใน Drive จนกว่าจะกดอนุมัติ แต่ตรวจสอบได้จากหน้าเว็บแอป */
+ACTIONS.getMemoryPreview = function(body){
+  var account = verifySession_(body);
+  var id = String(body.id || "");
+  var found = findRow_("MEMORIES", function(item){ return String(item.id)===id; });
+  if(!found) throw new Error("ไม่พบรูปภาพนี้");
+  var isOwner = String(found.obj.uploaderUsername).toLowerCase()===String(account.obj.username).toLowerCase();
+  if(!isOwner && account.obj.role!=="admin") throw new Error("คุณไม่มีสิทธิ์ดูรูปนี้");
+  if(String(found.obj.status)==="rejected") throw new Error("รูปนี้ถูกลบออกจากพื้นที่เก็บข้อมูลแล้ว");
+  var file;
+  try{ file = DriveApp.getFileById(String(found.obj.fileId)); }
+  catch(e){ throw new Error("ไม่พบไฟล์รูปภาพใน Google Drive"); }
+  var blob = file.getBlob();
+  var mimeType = String(blob.getContentType() || "").toLowerCase();
+  if(!MEMORY_ALLOWED_TYPES[mimeType]) throw new Error("ไม่สามารถเปิดตัวอย่างไฟล์นี้ได้");
+  return {ok:true, imageDataUrl:"data:"+mimeType+";base64,"+Utilities.base64Encode(blob.getBytes()), caption:String(found.obj.caption || ""), eventName:String(found.obj.eventName || "")};
+};
+
+ACTIONS.approveMemory = function(body){
+  var admin = requireAdmin_(body);
+  var id = String(body.id || "");
+  var found = findRow_("MEMORIES", function(item){ return String(item.id)===id; });
+  if(!found) throw new Error("ไม่พบรูปภาพนี้");
+  if(String(found.obj.status)!=="pending") throw new Error("รูปนี้ผ่านการตรวจสอบแล้ว");
+  try{
+    DriveApp.getFileById(String(found.obj.fileId)).setSharing(DriveApp.Access.ANYONE_WITH_LINK, DriveApp.Permission.VIEW);
+  }catch(e){
+    throw new Error("เปิดสิทธิ์แสดงรูปในแกลเลอรีไม่สำเร็จ กรุณาตรวจสอบนโยบายการแชร์ของ Google Drive");
+  }
+  var now = nowIso_();
+  writeCell_(found.sheet, found.row, found.head, "status", "approved");
+  writeCell_(found.sheet, found.row, found.head, "updatedAt", now);
+  writeCell_(found.sheet, found.row, found.head, "approvedAt", now);
+  writeCell_(found.sheet, found.row, found.head, "approvedBy", admin.obj.username);
+  writeCell_(found.sheet, found.row, found.head, "reviewNote", "");
+  return {ok:true};
+};
+
+ACTIONS.rejectMemory = function(body){
+  var admin = requireAdmin_(body);
+  var id = String(body.id || "");
+  var found = findRow_("MEMORIES", function(item){ return String(item.id)===id; });
+  if(!found) throw new Error("ไม่พบรูปภาพนี้");
+  if(String(found.obj.status)!=="pending") throw new Error("รูปนี้ผ่านการตรวจสอบแล้ว");
+  var note = memoryText_(body.reviewNote, "เหตุผล", 240, false);
+  trashMemoryFile_(found.obj.fileId);
+  var now = nowIso_();
+  writeCell_(found.sheet, found.row, found.head, "status", "rejected");
+  writeCell_(found.sheet, found.row, found.head, "updatedAt", now);
+  writeCell_(found.sheet, found.row, found.head, "reviewNote", note);
+  writeCell_(found.sheet, found.row, found.head, "approvedBy", admin.obj.username);
+  return {ok:true};
+};
+
+ACTIONS.deleteMyMemory = function(body){
+  var account = verifySession_(body);
+  var id = String(body.id || "");
+  var username = String(account.obj.username).toLowerCase();
+  var found = findRow_("MEMORIES", function(item){ return String(item.id)===id && String(item.uploaderUsername).toLowerCase()===username; });
+  if(!found) throw new Error("ไม่พบรูปภาพ หรือคุณไม่มีสิทธิ์ลบรูปนี้");
+  trashMemoryFile_(found.obj.fileId);
+  found.sheet.deleteRow(found.row);
+  return {ok:true};
+};
+
+ACTIONS.deleteMemory = function(body){
+  requireAdmin_(body);
+  var id = String(body.id || "");
+  var found = findRow_("MEMORIES", function(item){ return String(item.id)===id; });
+  if(!found) throw new Error("ไม่พบรูปภาพนี้");
+  trashMemoryFile_(found.obj.fileId);
   found.sheet.deleteRow(found.row);
   return {ok:true};
 };
