@@ -175,6 +175,16 @@
   .period-row{ display:flex; align-items:center; gap:8px; margin-bottom:8px; }
   .period-row .no{ width:26px; flex:none; font-size:12px; font-weight:700; color:var(--text-muted); text-align:center; }
   .navdot{ display:inline-block; width:6px; height:6px; border-radius:50%; background:var(--accent); margin-left:3px; vertical-align:top; }
+  .letter-card{ position:relative; overflow:hidden; border-color:rgba(108,92,231,.22); }
+  .letter-card::after{ content:"✉"; position:absolute; right:13px; top:8px; font-size:34px; opacity:.12; transform:rotate(8deg); }
+  .letter-meta{ display:flex; align-items:center; justify-content:space-between; gap:8px; margin-top:10px; padding-top:10px; border-top:1px dashed var(--border); }
+  .seal{ background:var(--accent-soft); color:var(--accent); }
+  .opened{ background:var(--good-soft); color:var(--good); }
+  .count-grid{ display:grid; grid-template-columns:repeat(4,minmax(0,1fr)); gap:7px; margin-top:13px; }
+  .count-unit{ background:var(--surface-2); border-radius:12px; padding:9px 4px; text-align:center; }
+  .count-num{ font-family:'IBM Plex Mono',monospace; font-size:18px; font-weight:700; color:var(--pri); line-height:1.15; }
+  .count-lbl{ font-size:9px; color:var(--text-muted); margin-top:3px; font-weight:700; letter-spacing:.04em; }
+  @media(max-width:380px){ .navbtn{ font-size:10px; padding-left:2px; padding-right:2px; } }
 </style>
 </head>
 <body>
@@ -316,7 +326,7 @@ function saveLastSeen(v){ try{ localStorage.setItem(LASTSEEN_KEY, JSON.stringify
 function latestOf(arr){ var m=""; (arr||[]).forEach(function(x){ if(x.createdAt>m) m=x.createdAt; }); return m; }
 
 var S = { tab:"feed", session:null, busy:false,
-  announcements:[], polls:[], posts:[], accounts:[], schedule:null,
+  announcements:[], polls:[], posts:[], accounts:[], schedule:null, timeLetters:[], myTimeLetters:[], countdowns:[],
   composer:null, confirmDlg:null, resetPassDlg:null, schedEdit:null,
   lastSeen: loadLastSeen(), hasNew:{},
   coins:{top:[],myTotal:0,myLastClaim:null,myLastRob:null}, robTargets:[], lootDlg:null, setCoinsDlg:null };
@@ -347,13 +357,16 @@ function refreshAll(){
   return Promise.all([
     api("listAnnouncements",{}), api("listPolls",{}), api("listPosts",{}),
     isAdmin() ? api("listAccounts",{}) : Promise.resolve({ok:true,items:[]}),
-    api("getSchedule",{})
+    api("getSchedule",{}), api("listTimeLetters",{}), api("listMyTimeLetters",{}), api("listCountdowns",{})
   ]).then(function(r){
     if(r[0].ok) S.announcements=r[0].items;
     if(r[1].ok) S.polls=r[1].items;
     if(r[2].ok) S.posts=r[2].items;
     if(r[3].ok) S.accounts=r[3].items;
     if(r[4].ok) S.schedule=r[4].data;
+    if(r[5].ok) S.timeLetters=r[5].items;
+    if(r[6].ok) S.myTimeLetters=r[6].items;
+    if(r[7].ok) S.countdowns=r[7].items;
     checkNew();
     render();
   });
@@ -379,6 +392,9 @@ function render(){
     poll:{k:"มีส่วนร่วม", t:"โหวต"},
     sched:{k:"วันนี้เรียนอะไร", t:"ตารางเรียน"},
     coins:{k:"สะสมแต้ม", t:"คอยน์"},
+    letters:{k:"ถึงอนาคตของเรา", t:"จดหมายเวลา"},
+    mine:{k:"พื้นที่ส่วนตัว", t:"จดหมายของฉัน"},
+    countdowns:{k:"กำหนดวันสำคัญ", t:"นับถอยหลัง"},
     acct:{k:"จัดการ", t:"บัญชีผู้ใช้"}
   };
   var tt=titles[S.tab]||titles.feed;
@@ -387,7 +403,8 @@ function render(){
   document.getElementById("whoName").textContent=S.session?S.session.displayName:"";
   document.getElementById("whoRole").textContent=S.session? (isAdmin()?"แอดมิน":"นักเรียน") : "";
 
-  var navDefs=[{k:"feed",l:"ฟีด"},{k:"ann",l:"ประกาศ"},{k:"poll",l:"โหวต"},{k:"sched",l:"ตาราง"},{k:"coins",l:"คอยน์"}];
+  var navDefs=[{k:"feed",l:"ฟีด"},{k:"ann",l:"ประกาศ"},{k:"poll",l:"โหวต"},{k:"sched",l:"ตาราง"},{k:"coins",l:"คอยน์"},{k:"letters",l:"จดหมาย"},{k:"countdowns",l:"นับถอยหลัง"}];
+  if(S.tab==="mine") navDefs.splice(6,0,{k:"mine",l:"ของฉัน"});
   if(isAdmin()) navDefs.push({k:"acct",l:"บัญชี"});
   document.getElementById("nav").innerHTML=navDefs.map(function(n){
     var dot = S.hasNew[n.k] ? '<span class="navdot"></span>' : '';
@@ -401,6 +418,9 @@ function render(){
   else if(S.tab==="poll") v.innerHTML=viewPoll();
   else if(S.tab==="sched") v.innerHTML=viewSchedule();
   else if(S.tab==="coins") v.innerHTML=viewCoins();
+  else if(S.tab==="letters") v.innerHTML=viewLetters();
+  else if(S.tab==="mine") v.innerHTML=viewMyLetters();
+  else if(S.tab==="countdowns") v.innerHTML=viewCountdowns();
   else if(S.tab==="acct" && isAdmin()) v.innerHTML=viewAccounts();
   v.scrollTop=top;
 
@@ -596,6 +616,69 @@ function viewCoins(){
 }
 
 /* ── บัญชีผู้ใช้ (แอดมิน) ── */
+function displayDateTime(iso){
+  var d=new Date(iso); if(isNaN(d)) return "ไม่ระบุเวลา";
+  return d.toLocaleString("th-TH",{dateStyle:"medium",timeStyle:"short"});
+}
+function localDateTimeInput(iso){
+  var d=new Date(iso); if(isNaN(d)) return "";
+  d.setMinutes(d.getMinutes()-d.getTimezoneOffset());
+  return d.toISOString().slice(0,16);
+}
+function localInputToIso(value){
+  var d=new Date(value);
+  return isNaN(d) ? String(value||"") : d.toISOString();
+}
+function countdownParts(iso){
+  var left=Math.max(0,new Date(iso).getTime()-Date.now());
+  var s=Math.floor(left/1000), d=Math.floor(s/86400); s%=86400;
+  var h=Math.floor(s/3600); s%=3600; var m=Math.floor(s/60); s%=60;
+  return {d:d,h:h,m:m,s:s,done:left===0};
+}
+function letterCard(letter, mine, i){
+  var open=letter.status==="opened";
+  var h='<div class="card letter-card fade-in"'+stagger(i||0)+'>'+ 
+    '<div style="display:flex;justify-content:space-between;align-items:flex-start;gap:8px;">'+
+      '<div style="font-size:15px;font-weight:700;line-height:1.35;flex:1;min-width:0;">'+esc(letter.title)+'</div>'+
+      '<span class="chip '+(open?"opened":"seal")+'">'+(open?"เปิดผนึกแล้ว":"ปิดผนึก")+'</span>'+ 
+    '</div>';
+  if(open) h+='<div style="font-size:13.5px;line-height:1.75;white-space:pre-wrap;margin-top:9px;">'+esc(letter.body||"")+'</div>';
+  else h+='<div class="muted" style="line-height:1.6;margin-top:8px;">เนื้อหาจะเปิดเผยเมื่อถึงเวลาที่ผู้เขียนกำหนด</div>';
+  h+='<div class="letter-meta"><div class="muted">'+(open?"เปิดเมื่อ":"จะเปิด ")+displayDateTime(letter.unlockAt)+'</div>'+
+      (mine?'<button class="btn sm danger" onclick="A.del(\'deleteMyTimeLetter\',\''+letter.id+'\')">ลบ</button>':'')+'</div></div>';
+  return h;
+}
+function viewLetters(){
+  var h=addBtn("เขียนจดหมายถึงอนาคต","A.openComposer('timeLetter')")+
+    '<button class="btn ghost" style="width:100%;margin-top:0;" onclick="A.tab(\'mine\')">ดูและจัดการจดหมายของฉัน</button>';
+  h+='<div class="muted" style="padding:2px 2px 0;">จดหมายทุกฉบับไม่ระบุผู้เขียน · มีทั้งหมด '+S.timeLetters.length+' ฉบับ</div>';
+  if(!S.timeLetters.length) h+='<div class="empty fade-in"><div class="ic">💌</div>ยังไม่มีจดหมายเวลา<br>เป็นคนแรกที่ฝากข้อความถึงอนาคต</div>';
+  else S.timeLetters.forEach(function(letter,i){ h+=letterCard(letter,false,i); });
+  return '<div class="stack">'+h+'</div>';
+}
+function viewMyLetters(){
+  var h=addBtn("เขียนจดหมายฉบับใหม่","A.openComposer('timeLetter')");
+  h+='<div class="muted" style="padding:2px 2px 0;">รายการนี้เห็นได้เฉพาะคุณ และลบได้ก่อนหรือหลังวันเปิดผนึก</div>';
+  if(!S.myTimeLetters.length) h+='<div class="empty fade-in"><div class="ic">📮</div>คุณยังไม่มีจดหมายที่ฝากไว้</div>';
+  else S.myTimeLetters.forEach(function(letter,i){ h+=letterCard(letter,true,i); });
+  return '<div class="stack">'+h+'</div>';
+}
+function viewCountdowns(){
+  var h="";
+  if(isAdmin()) h+=addBtn("สร้างเคาท์ดาวน์","A.openComposer('countdown')");
+  if(!S.countdowns.length) h+='<div class="empty fade-in"><div class="ic">⏳</div>ยังไม่มีวันสำคัญที่ตั้งไว้</div>';
+  else S.countdowns.forEach(function(c,i){
+    var p=countdownParts(c.targetAt);
+    h+='<div class="card fade-in"'+stagger(i)+'><div style="display:flex;justify-content:space-between;gap:8px;align-items:flex-start;">'+
+      '<div style="font-size:15px;font-weight:700;line-height:1.4;">'+esc(c.title)+'</div>'+
+      (isAdmin()?'<div class="row"><button class="x" title="แก้ไข" onclick="A.editCountdown(\''+c.id+'\')">✎</button><button class="x" title="ลบ" onclick="A.del(\'deleteCountdown\',\''+c.id+'\')">✕</button></div>':'')+
+      '</div><div class="muted" style="margin-top:5px;">เป้าหมาย '+displayDateTime(c.targetAt)+'</div>'+ 
+      '<div class="count-grid"><div class="count-unit"><div class="count-num">'+p.d+'</div><div class="count-lbl">วัน</div></div><div class="count-unit"><div class="count-num">'+String(p.h).padStart(2,"0")+'</div><div class="count-lbl">ชั่วโมง</div></div><div class="count-unit"><div class="count-num">'+String(p.m).padStart(2,"0")+'</div><div class="count-lbl">นาที</div></div><div class="count-unit"><div class="count-num">'+String(p.s).padStart(2,"0")+'</div><div class="count-lbl">วินาที</div></div></div>'+ 
+      (p.done?'<div class="muted" style="text-align:center;margin-top:10px;color:var(--good);font-weight:700;">ถึงกำหนดแล้ว</div>':'')+'</div>';
+  });
+  return '<div class="stack">'+h+'</div>';
+}
+
 function viewAccounts(){
   var h=addBtn("เพิ่มบัญชีนักเรียน/ครู","A.openComposer('account')");
   S.accounts.forEach(function(u,i){
@@ -620,7 +703,7 @@ function viewAccounts(){
 /* ── ฟอร์มสร้างเนื้อหา (composer sheet) ── */
 function composerSheet(){
   var c=S.composer; if(!c) return "";
-  var title={ann:"สร้างประกาศ", post:"สร้างโพสต์", poll:"สร้างโหวต", account:"เพิ่มบัญชี"}[c.type];
+  var title={ann:"สร้างประกาศ", post:"สร้างโพสต์", poll:"สร้างโหวต", account:"เพิ่มบัญชี", timeLetter:"เขียนจดหมายเวลา", countdown:c.id?"แก้ไขเคาท์ดาวน์":"สร้างเคาท์ดาวน์"}[c.type];
   var body="";
   if(c.type==="ann"){
     body='<label class="lbl">หัวข้อ</label>'+
@@ -653,6 +736,14 @@ function composerSheet(){
          '<label class="lbl">รหัสผ่านเริ่มต้น</label>'+
          '<input class="in" value="'+esc(c.password||"")+'" oninput="A.cf(\'password\',this.value)" style="margin:6px 0 12px;">'+
          '<label class="row" style="gap:8px;font-size:13.5px;"><input type="checkbox" '+(c.role==="admin"?"checked":"")+' onchange="A.cf(\'role\',this.checked?\'admin\':\'user\')"> ให้สิทธิ์แอดมิน</label>';
+  } else if(c.type==="timeLetter"){
+    body='<div class="card" style="padding:12px;margin-bottom:14px;background:var(--pri-soft);border-color:transparent;"><div style="font-size:13px;font-weight:700;color:var(--pri);">✉ จดหมายลับถึงอนาคต</div><div class="muted" style="margin-top:4px;line-height:1.55;">ชื่อของคุณจะไม่ปรากฏในคลังจดหมาย และเนื้อหาจะเปิดได้ตามวันที่กำหนดเท่านั้น</div></div>'+
+         '<label class="lbl">ชื่อเรื่อง</label><input class="in" value="'+esc(c.title||"")+'" maxlength="120" oninput="A.cf(\'title\',this.value)" style="margin:6px 0 12px;">'+
+         '<label class="lbl">ข้อความในจดหมาย</label><textarea class="in" maxlength="5000" oninput="A.cf(\'letterBody\',this.value)" style="margin:6px 0 12px;min-height:150px;">'+esc(c.letterBody||"")+'</textarea>'+
+         '<label class="lbl">วันและเวลาเปิดผนึก</label><input class="in" type="datetime-local" min="'+localDateTimeInput(new Date(Date.now()+60000).toISOString())+'" value="'+esc(c.unlockAt||"")+'" oninput="A.cf(\'unlockAt\',this.value)" style="margin-top:6px;">';
+  } else if(c.type==="countdown"){
+    body='<label class="lbl">หัวข้อเคาท์ดาวน์</label><input class="in" value="'+esc(c.title||"")+'" maxlength="120" oninput="A.cf(\'title\',this.value)" style="margin:6px 0 12px;">'+
+         '<label class="lbl">วันและเวลาเป้าหมาย</label><input class="in" type="datetime-local" min="'+localDateTimeInput(new Date(Date.now()+60000).toISOString())+'" value="'+esc(c.targetAt||"")+'" oninput="A.cf(\'targetAt\',this.value)" style="margin-top:6px;">';
   }
   return '<div class="sheet"><div class="sheetin scale-in">'+
     '<div class="sheethead"><div style="font-size:16px;font-weight:700;">'+title+'</div><button class="x" onclick="A.closeComposer()">✕</button></div>'+
@@ -764,7 +855,7 @@ function renderOverlays(){
 var A={
   tab:function(k){ S.tab=k; markSeen(k); render(); document.getElementById("view").scrollTop=0; if(k==="coins") refreshCoins(); },
 
-  openComposer:function(type){ S.composer = { type:type, options: type==="poll"?["",""]:undefined, err:"" }; render(); },
+  openComposer:function(type, seed){ S.composer = Object.assign({ type:type, options: type==="poll"?["",""]:undefined, err:"" },seed||{}); render(); },
   closeComposer:function(){ S.composer=null; render(); },
   cf:function(k,v){ if(S.composer) S.composer[k]=v; },
   cfOpt:function(i,v){ S.composer.options[i]=v; },
@@ -778,6 +869,8 @@ var A={
     else if(c.type==="post") call=api("createPost",{title:c.title,body:c.body});
     else if(c.type==="poll") call=api("createPoll",{question:c.question,options:c.options});
     else if(c.type==="account") call=api("createAccount",{newUsername:c.username,displayName:c.displayName,password:c.password,role:c.role});
+    else if(c.type==="timeLetter") call=api("createTimeLetter",{title:c.title,letterBody:c.letterBody,unlockAt:localInputToIso(c.unlockAt)});
+    else if(c.type==="countdown") call=api(c.id?"updateCountdown":"createCountdown",{id:c.id,title:c.title,targetAt:localInputToIso(c.targetAt)});
     call.then(function(r){
       S.busy=false;
       if(!r.ok){ c.err=r.error||"ทำรายการไม่สำเร็จ"; render(); return; }
@@ -800,6 +893,11 @@ var A={
     });
   },
   vote:function(pollId,idx){ A.act("vote",{pollId:pollId,optionIndex:idx}); },
+  editCountdown:function(id){
+    var item=S.countdowns.filter(function(c){ return c.id===id; })[0];
+    if(!item) return;
+    A.openComposer("countdown",{id:item.id,title:item.title,targetAt:localDateTimeInput(item.targetAt)});
+  },
   resetPass:function(username){ S.resetPassDlg={target:username, value:""}; render(); },
   rpVal:function(v){ S.resetPassDlg.value=v; },
   rpCancel:function(){ S.resetPassDlg=null; render(); },
@@ -1002,6 +1100,16 @@ function startCoinsTick(){
 }
 function stopCoinsTick(){ if(coinsTickTimer){ clearInterval(coinsTickTimer); coinsTickTimer=null; } }
 
+/* เคาท์ดาวน์ต้องแสดงวินาทีล่าสุด จึงวาดใหม่เฉพาะขณะที่อยู่ในแท็บเคาท์ดาวน์ */
+var countdownTickTimer=null;
+function startCountdownTick(){
+  stopCountdownTick();
+  countdownTickTimer=setInterval(function(){
+    if(S.tab==="countdowns" && !S.composer && !S.confirmDlg && !S.busy) render();
+  },1000);
+}
+function stopCountdownTick(){ if(countdownTickTimer){ clearInterval(countdownTickTimer); countdownTickTimer=null; } }
+
 /* ═══ เข้าสู่ระบบ ═══ */
 function doLogin(){
   var u=document.getElementById("lgUser").value.trim();
@@ -1048,6 +1156,7 @@ function showApp(){
   initPush();
   startAutoRefresh();
   startCoinsTick();
+  startCountdownTick();
   var ib=document.getElementById("installBtn");
   if(ib){ ib.hidden = isStandalone() || !deferredPrompt; ib.onclick=doInstall; }
 }

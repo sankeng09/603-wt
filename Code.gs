@@ -12,15 +12,13 @@
  * ติดตั้งใหม่ตั้งแต่ต้น: ดู README-setup.md
  */
 
-var ADMIN_DEFAULT_USER = "admin";
-var ADMIN_DEFAULT_PASS = "admin1234";
-
-/* ── ตั้งค่า Firebase Cloud Messaging (สำหรับ push notification แม้ปิดแอป) ──
-   ดูวิธีหาค่าเหล่านี้ใน README-setup.md หัวข้อ "ตั้งค่า Push Notification"
-   ถ้ายังไม่ตั้งค่า (ปล่อยเป็นค่า PASTE_... ไว้) ระบบจะข้ามการส่ง push แต่แอปยังใช้งานปกติทุกอย่าง */
-var FCM_PROJECT_ID   = "wt-85a44";
-var FCM_CLIENT_EMAIL = "firebase-adminsdk-fbsvc@wt-85a44.iam.gserviceaccount.com";
-var FCM_PRIVATE_KEY  = "-----BEGIN PRIVATE KEY-----\nMIIEvgIBADANBgkqhkiG9w0BAQEFAASCBKgwggSkAgEAAoIBAQCl36+zbyVnB9Uh\nuFVZPrmjpTrKSmt5NTW/HCdP0iaO2uMaYZunjjc8GEld+q7CXojcmWNufjM1LRQm\nRVNpGzVO5LVcNvE3Y3dp1om02g37XMEEQspOK2p5BbSd9Gb5KdHoXPjSyRbYJ3Bk\nKZ1IX+RHsJfQuAx4uEQrg/QvqoaGBwRdOUqz6LV0ehYIVCh3H2XBvXTBVWccuTgs\nSJvUyLdcuxHI14gtBxfvUc+hLWCgCy/OMmOTf/XDtWU/E6FsDUYb0IwAFapi2+z5\nS50LtdCsXiGys0xHooYtCfqWOZgouOCg5cEIFvXbUpLtR1vVJSbeFQNwkKCnIkrD\nQSzjIFC3AgMBAAECggEAGEoDCSa+DAeXlr0kB6d/DjmEZwQywf2gBdYc45FbArwx\nWTbwe2lV0+pH2V0l+LcDGi/T4ZAqoModveTqQTqHZIAVFpBtDgv1+9I7OU0Hkxvn\n9QnFZLZIJw9GKC3BDmdTTM/1wlfz4mm+tCFr3fc8uaAK+w3ttZe1/nFExoi/83bD\nO9G8nRqMg2pyVJJvJuGXmADhzs71gyzcLGNi2ZLX7T9Uk5LZKjElLqkZG+3pgFqp\ntmhbJej59Rogq8jssfAtaT1jKLoqbglEJCVrMdDItG16QwsAz9oC271cAxQUQ4bJ\navAL+9fI51YfbTOYbxVBQdFaTidGsST075U8+sDNoQKBgQDOT/eBHW6GZdCxoEtf\np0uhoImnbF4C9fc0W7e+2NVk/GZn7EBP26aLLaw6gjMLyI7vQ+678wcw82eAuI9f\nmD9neAiLPM7tOY56w6JiQl5A1gE6aRG7B0zy/UW2NfGt6WmOQxWP9WQLir11e32r\n6TwW+vGGufq3JJ3Zi6TiyujOmQKBgQDN0oIr7a0yyvfYEFbKzdnjkJIP40DLePse\nZ2vN0w45dWOSOHE/1J1MeP3r6jQSxGqk63Ol0tUkZnzLhgeLEwC7OsyQFKNcyOLT\nnDcOdChQVYf1MtV7jMP6AJR8/Q/S/xTt+7/ApVVw0gpBXkmCm5IgAahLYDzmEPnn\nMwkPEeQ7zwKBgQCjY5VB/csQSQX0BlxrDpTJFdiubRYvBhiWsKReUl79sR5w4xsz\no2LMConBdGd0x4rbVlN1KcziKYIo4QE61dow2VD65FeEa/a4psKtSp5WfqVOWvOd\nyPRZ49cXrLUP5DCiZ+JlthNbSK8uoXQvd3ENSgOJjTRPYoJYTU1yBvxE0QKBgF+B\nEJnlnXp2J+8AFeXhAvvPN5dbsdM4ff2rq6BEENOknuFYg2RE+gBkHB79+8/BiGKi\nRnVpkTFkxP+DX7iuxqYaMJWinfMN3AKo9/si9xnftkiWn+zGcqFs53nfyxny9vk+\n2clAbpb9P3j5kU6jdXiYjEj9jQSMWAlp6wgtGySNAoGBAJk2iRqwQSSjXxapFGus\nGYy3l6serCiBAa49C4UclUxDYYtm0nGwy9ZHlX4a4uIWr5G2c/b4QSxBkKm24BqB\nhDher2eOSRjeAnSNyO3Q6TLs/cUIfU1/BsDc4CnNf2In8wfWii9VwdoPuOueLcXI\nnTmxaW6kTJPApiNXqNGFQfvF\n-----END PRIVATE KEY-----\n";
+/* ค่าการแจ้งเตือน Firebase ต้องกำหนดผ่าน Script Properties เท่านั้น ห้ามเก็บข้อมูลรับรองใน GitHub */
+var FCM_PROJECT_ID   = PropertiesService.getScriptProperties().getProperty("FCM_PROJECT_ID") || "";
+var FCM_CLIENT_EMAIL = PropertiesService.getScriptProperties().getProperty("FCM_CLIENT_EMAIL") || "";
+var FCM_PRIVATE_KEY  = PropertiesService.getScriptProperties().getProperty("FCM_PRIVATE_KEY") || "";
+var ADMIN_DEFAULT_USER = PropertiesService.getScriptProperties().getProperty("ADMIN_DEFAULT_USER") || "";
+var ADMIN_DEFAULT_PASS = PropertiesService.getScriptProperties().getProperty("ADMIN_DEFAULT_PASS") || "";
+var TIME_LETTER_AUTHOR_SECRET = PropertiesService.getScriptProperties().getProperty("TIME_LETTER_AUTHOR_SECRET") || "";
 
 var SHEETS = {
   ACCOUNTS:      { name:"Accounts",      cols:["username","passHash","salt","role","displayName","deviceId","active","createdAt"] },
@@ -30,7 +28,9 @@ var SHEETS = {
   POSTS:         { name:"Posts",         cols:["id","title","body","createdAt","createdBy"] },
   SCHEDULE:      { name:"Schedule",      cols:["id","data","updatedAt","updatedBy"] },
   PUSHTOKENS:    { name:"PushTokens",    cols:["username","token","updatedAt"] },
-  COINS:         { name:"Coins",         cols:["username","displayName","coins","monthKey","lastClaim","lastRob"] }
+  COINS:         { name:"Coins",         cols:["username","displayName","coins","monthKey","lastClaim","lastRob"] },
+  TIMELETTERS:   { name:"TimeLetters",   cols:["id","authorToken","title","body","unlockAt","createdAt"] },
+  COUNTDOWNS:    { name:"Countdowns",    cols:["id","title","targetAt","createdAt","createdBy","updatedAt"] }
 };
 
 function ss_(){ return SpreadsheetApp.getActiveSpreadsheet(); }
@@ -49,12 +49,18 @@ function sheet_(key){
   if(key==="COINS" && sh.getMaxRows()>1){
     sh.getRange(2, 4, sh.getMaxRows()-1, 3).setNumberFormat("@"); // monthKey, lastClaim, lastRob
   }
+  if((key==="TIMELETTERS" || key==="COUNTDOWNS") && sh.getMaxRows()>1){
+    sh.getRange(2, 1, sh.getMaxRows()-1, def.cols.length).setNumberFormat("@");
+  }
   return sh;
 }
 
 function ensureSeed_(){
   var sh = sheet_("ACCOUNTS");
   if(sh.getLastRow() < 2){
+    if(!ADMIN_DEFAULT_USER || !ADMIN_DEFAULT_PASS){
+      throw new Error("ยังไม่มีบัญชีผู้ดูแลเริ่มต้น: กรุณาตั้งค่า ADMIN_DEFAULT_USER และ ADMIN_DEFAULT_PASS ใน Script Properties ก่อนใช้งานครั้งแรก");
+    }
     var salt = randomToken_(8);
     sh.appendRow([ADMIN_DEFAULT_USER, hashPass_(ADMIN_DEFAULT_PASS, salt), salt, "admin", "ผู้ดูแลระบบ", "", true, nowIso_()]);
   }
@@ -113,7 +119,7 @@ function requireAdmin_(body){
    ขอ access token ผ่าน service account (JWT → OAuth2) แล้วยิงไปที่ FCM HTTP v1 API
    ทุกอย่างห่อด้วย try/catch ที่จุดเรียกใช้เสมอ — push ล้มเหลวต้องไม่ทำให้การสร้างประกาศ/โหวต/โพสต์ล้มไปด้วย */
 function fcmReady_(){
-  return FCM_PROJECT_ID.indexOf("PASTE_")!==0 && FCM_CLIENT_EMAIL.indexOf("PASTE_")!==0 && FCM_PRIVATE_KEY.indexOf("PASTE_")!==0;
+  return !!FCM_PROJECT_ID && !!FCM_CLIENT_EMAIL && !!FCM_PRIVATE_KEY;
 }
 function getFcmAccessToken_(){
   var cache = CacheService.getScriptCache();
@@ -607,6 +613,168 @@ function checkUpcomingPeriod_(){
     try{ sendPushToAll_("🔔 ใกล้ถึงคาบ "+(pi+1), content+" • เริ่ม "+p.time, null); }catch(e){}
   });
 }
+
+/* ── จดหมายเวลา (Time Capsule Letter) ──
+   ผู้เขียนถูกเก็บไว้เฉพาะในชีตเพื่อยืนยันสิทธิ์การลบ และห้ามส่งกลับไปยังหน้าเว็บทุกกรณี */
+function timeIso_(value){
+  var date = value instanceof Date ? value : new Date(value);
+  if(isNaN(date.getTime())) return String(value || "");
+  return date.toISOString();
+}
+function requiredFutureTime_(raw, label){
+  var date = new Date(raw);
+  if(isNaN(date.getTime())) throw new Error("รูปแบบ"+(label||"วันเวลา")+"ไม่ถูกต้อง");
+  if(date.getTime() <= Date.now()) throw new Error((label||"วันเวลา")+"ต้องอยู่ในอนาคต");
+  return date.toISOString();
+}
+function timeLetterView_(letter, now){
+  var unlockAt = timeIso_(letter.unlockAt);
+  var opened = new Date(unlockAt).getTime() <= now.getTime();
+  return {
+    id:String(letter.id),
+    title:String(letter.title || "จดหมายไม่มีชื่อเรื่อง"),
+    unlockAt:unlockAt,
+    createdAt:timeIso_(letter.createdAt),
+    status:opened ? "opened" : "locked",
+    body:opened ? String(letter.body || "") : null
+  };
+}
+function countdownView_(item){
+  return {
+    id:String(item.id),
+    title:String(item.title || "เคาท์ดาวน์"),
+    targetAt:timeIso_(item.targetAt),
+    createdAt:timeIso_(item.createdAt),
+    updatedAt:timeIso_(item.updatedAt)
+  };
+}
+function newId_(){ return Utilities.getUuid(); }
+function normalizedText_(value, field, maxLength){
+  var text = String(value || "").trim();
+  if(!text) throw new Error("กรุณากรอก"+field);
+  if(text.length > maxLength) throw new Error(field+"ยาวเกิน "+maxLength+" ตัวอักษร");
+  return text;
+}
+function authorToken_(username){
+  if(!TIME_LETTER_AUTHOR_SECRET){
+    throw new Error("ยังไม่ได้ตั้งค่า TIME_LETTER_AUTHOR_SECRET ใน Script Properties");
+  }
+  var bytes = Utilities.computeHmacSha256Signature(String(username||"").toLowerCase(), TIME_LETTER_AUTHOR_SECRET);
+  return Utilities.base64EncodeWebSafe(bytes).replace(/=+$/, "");
+}
+function timeLettersSheet_(){
+  var sh = sheet_("TIMELETTERS");
+  var header = sh.getRange(1, 1, 1, sh.getLastColumn()).getValues()[0].map(String);
+  var legacyIndex = header.indexOf("authorUsername");
+  var tokenIndex = header.indexOf("authorToken");
+  if(tokenIndex < 0 && legacyIndex >= 0){
+    var rowCount = sh.getLastRow()-1;
+    if(rowCount > 0){
+      var legacyValues = sh.getRange(2, legacyIndex+1, rowCount, 1).getValues();
+      sh.getRange(2, legacyIndex+1, rowCount, 1).setValues(legacyValues.map(function(row){
+        return [authorToken_(row[0])];
+      }));
+    }
+    sh.getRange(1, legacyIndex+1).setValue("authorToken");
+  }
+  return sh;
+}
+
+ACTIONS.createTimeLetter = function(body){
+  var account = verifySession_(body);
+  timeLettersSheet_();
+  var title = normalizedText_(body.title, "ชื่อเรื่อง", 120);
+  var letterBody = normalizedText_(body.letterBody, "ข้อความในจดหมาย", 5000);
+  var unlockAt = requiredFutureTime_(body.unlockAt, "วันเวลาเปิดผนึก");
+  var id = newId_();
+  sheet_("TIMELETTERS").appendRow([id, authorToken_(account.obj.username), title, letterBody, unlockAt, nowIso_()]);
+  return {ok:true, letter:{id:id, title:title, unlockAt:unlockAt, status:"locked"}};
+};
+
+ACTIONS.listTimeLetters = function(body){
+  verifySession_(body);
+  timeLettersSheet_();
+  var now = new Date();
+  var items = readAll_("TIMELETTERS").map(function(letter){ return timeLetterView_(letter, now); });
+  items.sort(function(a,b){ return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime(); });
+  return {ok:true, total:items.length, items:items};
+};
+
+ACTIONS.readTimeLetter = function(body){
+  verifySession_(body);
+  timeLettersSheet_();
+  var id = String(body.id || "");
+  var found = findRow_("TIMELETTERS", function(letter){ return String(letter.id)===id; });
+  if(!found) throw new Error("ไม่พบจดหมายฉบับนี้");
+  return {ok:true, letter:timeLetterView_(found.obj, new Date())};
+};
+
+ACTIONS.listMyTimeLetters = function(body){
+  var account = verifySession_(body);
+  timeLettersSheet_();
+  var authorToken = authorToken_(account.obj.username);
+  var now = new Date();
+  var items = readAll_("TIMELETTERS").filter(function(letter){
+    return String(letter.authorToken)===authorToken;
+  }).map(function(letter){ return timeLetterView_(letter, now); });
+  items.sort(function(a,b){ return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime(); });
+  return {ok:true, total:items.length, items:items};
+};
+
+ACTIONS.deleteMyTimeLetter = function(body){
+  var account = verifySession_(body);
+  timeLettersSheet_();
+  var id = String(body.id || "");
+  if(!id) throw new Error("ไม่พบรหัสจดหมาย");
+  var authorToken = authorToken_(account.obj.username);
+  var found = findRow_("TIMELETTERS", function(letter){
+    return String(letter.id)===id && String(letter.authorToken)===authorToken;
+  });
+  if(!found) throw new Error("ไม่พบจดหมาย หรือคุณไม่มีสิทธิ์ลบจดหมายฉบับนี้");
+  found.sheet.deleteRow(found.row);
+  return {ok:true};
+};
+
+/* ── เคาท์ดาวน์ ── */
+ACTIONS.listCountdowns = function(body){
+  verifySession_(body);
+  var items = readAll_("COUNTDOWNS").map(countdownView_);
+  items.sort(function(a,b){ return new Date(a.targetAt).getTime() - new Date(b.targetAt).getTime(); });
+  return {ok:true, items:items};
+};
+
+ACTIONS.createCountdown = function(body){
+  var admin = requireAdmin_(body);
+  var title = normalizedText_(body.title, "หัวข้อเคาท์ดาวน์", 120);
+  var targetAt = requiredFutureTime_(body.targetAt, "วันเวลาเป้าหมาย");
+  var now = nowIso_();
+  var id = newId_();
+  sheet_("COUNTDOWNS").appendRow([id, title, targetAt, now, admin.obj.username, now]);
+  return {ok:true, countdown:{id:id, title:title, targetAt:targetAt, createdAt:now, updatedAt:now}};
+};
+
+ACTIONS.updateCountdown = function(body){
+  requireAdmin_(body);
+  var id = String(body.id || "");
+  var found = findRow_("COUNTDOWNS", function(item){ return String(item.id)===id; });
+  if(!found) throw new Error("ไม่พบเคาท์ดาวน์นี้");
+  var title = normalizedText_(body.title, "หัวข้อเคาท์ดาวน์", 120);
+  var targetAt = requiredFutureTime_(body.targetAt, "วันเวลาเป้าหมาย");
+  var updatedAt = nowIso_();
+  writeCell_(found.sheet, found.row, found.head, "title", title);
+  writeCell_(found.sheet, found.row, found.head, "targetAt", targetAt);
+  writeCell_(found.sheet, found.row, found.head, "updatedAt", updatedAt);
+  return {ok:true, countdown:{id:id, title:title, targetAt:targetAt, createdAt:timeIso_(found.obj.createdAt), updatedAt:updatedAt}};
+};
+
+ACTIONS.deleteCountdown = function(body){
+  requireAdmin_(body);
+  var id = String(body.id || "");
+  var found = findRow_("COUNTDOWNS", function(item){ return String(item.id)===id; });
+  if(!found) throw new Error("ไม่พบเคาท์ดาวน์นี้");
+  found.sheet.deleteRow(found.row);
+  return {ok:true};
+};
 
 /* ── entrypoints ── */
 function doPost(e){
