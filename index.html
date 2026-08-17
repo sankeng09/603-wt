@@ -232,6 +232,25 @@
   .mem-lightbox-close{ align-self:flex-end; margin-bottom:10px; border-color:rgba(255,255,255,.45); background:rgba(0,0,0,.45); color:#fff; }
   .mem-thumb:focus-visible{ outline:3px solid var(--accent); outline-offset:-3px; }
   .btn:focus-visible,.iconbtn:focus-visible,.navbtn:focus-visible,.x:focus-visible,.optbtn:focus-visible,.day-pill:focus-visible{ outline:3px solid var(--accent); outline-offset:3px; }
+  /* แผงวิดเจ็ตหน้าแรก */
+  .widget-panel{ padding:15px; border:1px solid var(--ink); border-radius:20px; background:linear-gradient(135deg,var(--ink),#30302E); color:#fff; box-shadow:5px 5px 0 var(--accent); }
+  .widget-heading{ display:flex; align-items:center; justify-content:space-between; gap:12px; margin-bottom:12px; }
+  .widget-heading strong{ font-size:15px; letter-spacing:-.02em; }
+  .widget-live{ display:inline-flex; align-items:center; gap:5px; padding:4px 8px; border-radius:999px; background:rgba(244,196,0,.16); color:var(--accent); font:700 9.5px 'IBM Plex Mono',monospace; letter-spacing:.08em; }
+  .widget-live::before{ content:""; width:6px; height:6px; border-radius:50%; background:var(--accent); box-shadow:0 0 0 3px rgba(244,196,0,.15); }
+  .widget-grid{ display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:9px; }
+  .widget-card{ min-width:0; min-height:130px; padding:13px; border:1px solid rgba(255,255,255,.18); border-radius:15px; background:rgba(255,255,255,.09); color:#fff; text-align:left; cursor:pointer; transition:transform .16s cubic-bezier(.23,1,.32,1),background .16s ease,border-color .16s ease; }
+  .widget-card:hover{ transform:translateY(-2px); background:rgba(255,255,255,.14); border-color:rgba(244,196,0,.85); }
+  .widget-card:active{ transform:scale(.97); }
+  .widget-label{ display:block; color:rgba(255,255,255,.65); font-size:10px; font-weight:800; letter-spacing:.08em; text-transform:uppercase; }
+  .widget-value{ display:block; margin-top:9px; font-size:18px; font-weight:800; line-height:1.24; letter-spacing:-.025em; overflow-wrap:anywhere; }
+  .widget-count{ color:var(--accent); font-family:'IBM Plex Mono',monospace; font-size:16px; }
+  .widget-copy{ display:block; margin-top:7px; color:rgba(255,255,255,.7); font-size:11.5px; line-height:1.45; overflow-wrap:anywhere; }
+  .widget-quick{ display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:8px; margin-top:10px; }
+  .widget-quick button{ min-width:0; padding:10px 7px; border:1px solid rgba(255,255,255,.17); border-radius:12px; background:rgba(255,255,255,.06); color:#fff; font-size:11px; font-weight:700; line-height:1.35; cursor:pointer; transition:transform .16s cubic-bezier(.23,1,.32,1),background .16s ease; }
+  .widget-quick button:hover{ background:rgba(244,196,0,.18); }
+  .widget-quick button:active{ transform:scale(.97); }
+  .widget-card:focus-visible,.widget-quick button:focus-visible{ outline:3px solid var(--accent); outline-offset:3px; }
   @media(min-width:680px){ body{ background-color:#E7E4DB; } .shell{ background:var(--bg); border-left:1px solid var(--border); border-right:1px solid var(--border); box-shadow:0 0 0 1px rgba(255,255,255,.35),0 0 46px rgba(0,0,0,.12); } .gate{ box-shadow:0 0 46px rgba(0,0,0,.18); } }
   @media(max-width:380px){ .navbtn{ min-width:70px; font-size:11.5px; padding-left:10px; padding-right:10px; } }
 </style>
@@ -285,7 +304,7 @@
    ห้องเรียนของเรา — ประกาศ / โหวต / ฟีดโพสต์ / ตารางเรียน
    ต้องตั้งค่า API_URL ให้ชี้ไปที่ Web app URL ของ Google Apps Script
    ═══════════════════════════════════════════════════════════════ */
-var API_URL = "https://script.google.com/macros/s/AKfycbxdalvw84fIQmxPah-DKL_Ew_eM9gcJ02iavO7dW5omlUQxcS1bVAkFRiQOzHnntSjU/exec";
+var API_URL = "https://script.google.com/macros/s/AKfycbzCivmTFZNbDmXUvs9q2rTUtKDhfR1WSxtfI9gEvu3xqXLzQf1i9qRdjfXefnGUfwPe/exec";
 
 /* ── ตั้งค่า Firebase (สำหรับ push notification แม้ปิดแอป) ──
    หาค่าเหล่านี้ได้จาก Firebase Console (ดู README-setup.md หัวข้อ "ตั้งค่า Push Notification")
@@ -490,12 +509,18 @@ function refreshMemories(){
 function refreshMyMemories(){
   return refreshList("myMemories","listMyMemories","myMemories",{get:function(){return S.myMemories;},set:function(r){S.myMemories=r.items;}});
 }
-function refreshMemoryModeration(){
-  if(!isAdmin()) return Promise.resolve({ok:true,items:[]});
-  return refreshList("memoryModeration","listMemoryModeration","memMod",{get:function(){return S.memoryModeration;},set:function(r){S.memoryModeration=r.items;}});
-}
-function refreshForTab(tab){
-  var loaders={feed:refreshPosts,ann:refreshAnnouncements,poll:refreshPolls,sched:refreshSchedule,coins:refreshCoins,
+	function refreshMemoryModeration(){
+	  if(!isAdmin()) return Promise.resolve({ok:true,items:[]});
+	  return refreshList("memoryModeration","listMemoryModeration","memMod",{get:function(){return S.memoryModeration;},set:function(r){S.memoryModeration=r.items;}});
+	}
+	function refreshHomeWidgets(){
+	  return Promise.all([refreshCountdowns(),refreshSchedule()]).then(function(results){
+	    if(S.tab==="feed") render();
+	    return {ok:results[0].ok||results[1].ok};
+	  });
+	}
+	function refreshForTab(tab){
+	  var loaders={feed:function(){ return Promise.all([refreshPosts(),refreshHomeWidgets()]); },ann:refreshAnnouncements,poll:refreshPolls,sched:refreshSchedule,coins:refreshCoins,
     letters:function(){return refreshLetters("public");},mine:function(){return refreshLetters("mine");},countdowns:refreshCountdowns,acct:refreshAccounts,
     memories:refreshMemories,myMemories:refreshMyMemories,memMod:refreshMemoryModeration};
   return loaders[tab] ? loaders[tab]() : Promise.resolve({ok:true});
@@ -618,14 +643,61 @@ function revealActiveNav(){
   var active=nav && nav.querySelector(".navbtn.on");
   if(active && active.scrollIntoView) active.scrollIntoView({behavior:"smooth",block:"nearest",inline:"center"});
 }
-function addBtn(label, action){
-  return '<button class="btn fade-in" style="width:100%;justify-content:center;" onclick="'+action+'">＋ '+label+'</button>';
-}
-function stagger(i){ return ' style="animation-delay:'+(i*45)+'ms"'; }
+	function addBtn(label, action){
+	  return '<button class="btn fade-in" style="width:100%;justify-content:center;" onclick="'+action+'">＋ '+label+'</button>';
+	}
+	function stagger(i){ return ' style="animation-delay:'+(i*45)+'ms"'; }
+	function nextCountdownForWidget(){
+	  var now=Date.now();
+	  var list=(S.countdowns||[]).filter(function(c){ return new Date(c.targetAt).getTime()>now; });
+	  list.sort(function(a,b){ return new Date(a.targetAt).getTime()-new Date(b.targetAt).getTime(); });
+	  return list[0]||null;
+	}
+	function widgetCountdownCopy(item){
+	  if(!item) return "ยังไม่มีวันสำคัญที่กำลังจะมาถึง";
+	  var p=countdownParts(item.targetAt);
+	  return "อีก "+p.d+" วัน "+String(p.h).padStart(2,"0")+":"+String(p.m).padStart(2,"0")+":"+String(p.s).padStart(2,"0");
+	}
+	function widgetScheduleInfo(){
+	  var sc=S.schedule;
+	  if(!sc || !sc.periods || !sc.days || !sc.cells) return {label:"ตารางเรียน",value:"ยังไม่พร้อม",copy:"รอผู้ดูแลตั้งตารางเรียน"};
+	  var now=new Date(), day=(now.getDay()+6)%7, min=now.getHours()*60+now.getMinutes();
+	  if(day>=sc.days.length) return {label:"ตารางเรียน",value:"วันหยุด",copy:"เปิดดูตารางเรียนทั้งสัปดาห์"};
+	  for(var i=0;i<sc.periods.length;i++){
+	    var range=parseTimeRange(sc.periods[i].time), subject=String(sc.cells[day+"-"+i]||"ว่าง").replace(/\n/g," · ");
+	    if(!range) continue;
+	    if(min>=range.s && min<=range.e) return {label:"กำลังเรียน",value:subject,copy:"คาบ "+(i+1)+" · "+sc.periods[i].time};
+	    if(min<range.s) return {label:"คาบถัดไป",value:subject,copy:"คาบ "+(i+1)+" · "+sc.periods[i].time};
+	  }
+	  return {label:"ตารางเรียน",value:"หมดคาบแล้ว",copy:"เปิดดูตารางเรียนวันถัดไป"};
+	}
+	function viewHomeWidgets(){
+	  var countdown=nextCountdownForWidget(), sched=widgetScheduleInfo();
+	  return '<section class="widget-panel fade-in" aria-label="วิดเจ็ตข้อมูลห้องเรียน">'+
+	    '<div class="widget-heading"><strong>วันนี้ในห้อง ม.6/3</strong><span class="widget-live">LIVE</span></div>'+
+	    '<div class="widget-grid">'+
+	      '<button type="button" class="widget-card" onclick="A.tab(\'countdowns\')" aria-label="เปิดหน้าเคาท์ดาวน์">'+
+	        '<span class="widget-label">'+(countdown?esc(countdown.title):"เคาท์ดาวน์")+'</span>'+
+	        '<span class="widget-value widget-count" data-widget-countdown>'+widgetCountdownCopy(countdown)+'</span>'+
+	        '<span class="widget-copy">'+(countdown?"แตะเพื่อดูวันสำคัญทั้งหมด":"แตะเพื่อเพิ่มหรือดูรายการ")+'</span>'+
+	      '</button>'+
+	      '<button type="button" class="widget-card" onclick="A.tab(\'sched\')" aria-label="เปิดตารางเรียน">'+
+	        '<span class="widget-label" data-widget-schedule-label>'+esc(sched.label)+'</span>'+
+	        '<span class="widget-value" data-widget-schedule-value>'+esc(sched.value)+'</span>'+
+	        '<span class="widget-copy" data-widget-schedule-copy>'+esc(sched.copy)+'</span>'+
+	      '</button>'+
+	    '</div>'+
+	    '<div class="widget-quick" aria-label="ทางลัด">'+
+	      '<button type="button" onclick="A.openComposer(\'timeLetter\')">เขียนจดหมาย</button>'+
+	      '<button type="button" onclick="A.openComposer(\'memory\')">อัปโหลดรูป</button>'+
+	      '<button type="button" onclick="A.tab(\'memories\')">ดูความทรงจำ</button>'+
+	    '</div>'+
+	  '</section>';
+	}
 
-/* ── ฟีดโพสต์ ── */
-function viewFeed(){
-  var h="";
+	/* ── ฟีดโพสต์ ── */
+	function viewFeed(){
+	  var h=viewHomeWidgets();
   if(isAdmin()) h+=addBtn("สร้างโพสต์ใหม่","A.openComposer('post')");
   if(!S.posts.length){
     h+='<div class="empty fade-in"><div class="ic">📭</div>ยังไม่มีโพสต์ในฟีด</div>';
@@ -1165,12 +1237,13 @@ function prepareMemoryImage(file,done,fail){
   reader.readAsDataURL(file);
 }
 
-/* ═══════════ ACTIONS ═══════════ */
-var A={
-  tab:function(k){
-    if(S.tab===k) return;
-    S.tab=k; S.animateView=true; markSeen(k); render(); document.getElementById("view").scrollTop=0; revealActiveNav(); refreshForTab(k);
-  },
+	/* ═══════════ ACTIONS ═══════════ */
+	var A={
+	  tab:function(k,fromLocation){
+	    if(!isAllowedTab(k)) return;
+	    if(S.tab===k) return;
+	    S.tab=k; if(!fromLocation) setTabLocation(k); S.animateView=true; markSeen(k); render(); document.getElementById("view").scrollTop=0; revealActiveNav(); refreshForTab(k);
+	  },
 
   openComposer:function(type, seed){ S.composer = Object.assign({ type:type, options: type==="poll"?["",""]:undefined, err:"" },seed||{}); render(); },
   closeComposer:function(){ S.composer=null; render(); },
@@ -1468,6 +1541,21 @@ function startCountdownTick(){
   },1000);
 }
 function stopCountdownTick(){ if(countdownTickTimer){ clearInterval(countdownTickTimer); countdownTickTimer=null; } }
+function updateHomeWidgets(){
+  if(S.tab!=="feed" || S.composer||S.confirmDlg||S.busy) return;
+  var countdownNode=document.querySelector("[data-widget-countdown]"), countdown=nextCountdownForWidget();
+  if(countdownNode) countdownNode.textContent=widgetCountdownCopy(countdown);
+  var info=widgetScheduleInfo(), label=document.querySelector("[data-widget-schedule-label]"), value=document.querySelector("[data-widget-schedule-value]"), copy=document.querySelector("[data-widget-schedule-copy]");
+  if(label) label.textContent=info.label;
+  if(value) value.textContent=info.value;
+  if(copy) copy.textContent=info.copy;
+}
+var homeWidgetTickTimer=null;
+function startHomeWidgetTick(){
+  stopHomeWidgetTick();
+  homeWidgetTickTimer=setInterval(updateHomeWidgets,1000);
+}
+function stopHomeWidgetTick(){ if(homeWidgetTickTimer){ clearInterval(homeWidgetTickTimer); homeWidgetTickTimer=null; } }
 function tickCountdowns(){
   var partsById={};
   S.countdowns.forEach(function(c){ partsById[c.id]=countdownParts(c.targetAt); });
@@ -1519,7 +1607,7 @@ function showGate(){
 function showApp(){
   document.getElementById("gate").hidden=true;
   document.getElementById("app").hidden=false;
-  S.tab="feed";
+  S.tab=tabFromLocation();
   S.initialLoading=true;
   render();
   refreshForTab(S.tab).then(function(){ S.initialLoading=false; updateDataLoading(); });
@@ -1531,6 +1619,7 @@ function showApp(){
   startAutoRefresh();
   startCoinsTick();
   startCountdownTick();
+  startHomeWidgetTick();
   var ib=document.getElementById("installBtn");
   if(ib){ ib.hidden = isStandalone() || !deferredPrompt; ib.onclick=doInstall; }
 }
@@ -1545,6 +1634,24 @@ function boot(){
   if(sess){ S.session=sess; showApp(); }
   else showGate();
 }
+
+function isAllowedTab(k){
+  var open={feed:true,ann:true,poll:true,sched:true,coins:true,letters:true,mine:true,countdowns:true,memories:true,myMemories:true};
+  if(k==="acct" || k==="memMod") return isAdmin();
+  return !!open[k];
+}
+function tabFromLocation(){
+  var m=String(location.hash||"").match(/^#tab=([A-Za-z]+)/), tab=m?m[1]:"feed";
+  return isAllowedTab(tab)?tab:"feed";
+}
+function setTabLocation(k){
+  if(!window.history || !history.replaceState) return;
+  var next=location.pathname+location.search+(k==="feed"?"":"#tab="+encodeURIComponent(k));
+  history.replaceState(null,"",next);
+}
+window.addEventListener("hashchange",function(){
+  if(S.session) A.tab(tabFromLocation(),true);
+});
 
 /* ═══ ติดตั้งลงหน้าจอโฮม ═══ */
 var deferredPrompt=null;
@@ -1562,7 +1669,7 @@ function isIOSDevice(){
 }
 function doInstall(){
   if(isIOSDevice()){
-    alert("วิธีติดตั้งลงหน้าจอโฮม (iPhone/iPad):\n1) แตะปุ่มแชร์ (กรอบสี่เหลี่ยมมีลูกศรชี้ขึ้น) แถบด้านล่างของ Safari\n2) เลื่อนลงแล้วเลือก “เพิ่มไปยังหน้าจอโฮม”\n3) แตะ “เพิ่ม”");
+    alert("วิธีติดตั้งลงหน้าจอโฮม (iPhone/iPad):\n1) เปิดหน้านี้ด้วย Safari\n2) แตะปุ่มแชร์ (กรอบสี่เหลี่ยมมีลูกศรชี้ขึ้น) ที่แถบด้านล่าง\n3) เลื่อนลงแล้วเลือก “เพิ่มไปยังหน้าจอโฮม”\n4) แตะ “เพิ่ม”");
     return;
   }
   if(!deferredPrompt) return;
